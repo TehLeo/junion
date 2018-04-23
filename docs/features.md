@@ -68,12 +68,12 @@ If your code depends on the layout of data within a struct, use the annotation p
 ```java
 @Struct(autopad=false)
 public class Manual {
-	public byte b;
+    public byte b;
     private byte padding;
     public char ch;
 }
 ```
-By setting autopad to false, you are required to define your data on so that it is aligned.
+By setting autopad to false, you are required to define your data so that it is aligned.
 The compiler will throw an error if a structure is not properly aligned.
 
 #### Creating Arrays of Struct Types
