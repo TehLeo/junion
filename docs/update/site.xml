@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<site>
+   <feature url="features/jstructsite_1.0.0.201804231523.jar" id="jstructsite" version="1.0.0.201804231523">
+      <category name="theleo.jstruct"/>
+   </feature>
+   <category-def name="theleo.jstruct" label="Project JStruct">
+      <description>
+         Add support for struct arrays for Java.
+      </description>
+   </category-def>
+</site>
