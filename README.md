@@ -44,3 +44,16 @@ For a list of features [click here](https://tehleo.github.io/junion/features.htm
 **Performance Test**
 
 ![alt text](docs/testarrayperf75.png)
+
+## Download
+
+Check out the [latest release](https://github.com/TehLeo/junion/releases)
+
+and usage/IDE integration [guide here.](https://tehleo.github.io/junion/install.html)
+
+## Support & Donations
+
+Would you like to support JUnion? You can report bugs or request for new features at: https://github.com/TehLeo/junion/issues
+
+Or would you like to make a donation?
+You can do so [via PayPap](https://www.paypal.me/JurajPapp)
