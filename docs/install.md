@@ -38,6 +38,8 @@ To use JUnion within Eclipse IDE, follow the steps:
 
 Alternatively watch the Eclipse Setup Tutorial:
 
+[![Eclipse Installation Tutorial](http://img.youtube.com/vi/e-W-d016g3Y/0.jpg)](http://www.youtube.com/watch?v=e-W-d016g3Y "Eclipse Installation Tutorial")
+
 #### Netbeans Support
 
 To use JUnion within Netbean IDE, follow the steps:
