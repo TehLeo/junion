@@ -7,7 +7,7 @@ JUnion is a free, open source project, built by spending time on its development
 
 **Benefits of becoming a supporter**
 
-Supporters that contribute at least $5 monthly can request to have their name/logo/website link displayed on front page. 
+Supporters that contribute at least $5 monthly can request to have their name/logo/website link displayed on front page by sending an email to jurajpapp7@gmail.com
 
 **Other ways to support**
 
