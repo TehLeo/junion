@@ -9,6 +9,17 @@
     <link rel="stylesheet" href="{{ '/assets/css/style.css?v=' | append: site.github.build_revision | relative_url }}">
   </head>
   <body>
+    <header>
+        <div class="container">
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="/">Link1</a></li>
+                    <li><a href="/">Link2</a></li>
+                </ul>
+            </nav>
+            <h1>Project JUnion</h1>
+        </div>
+    </header>
     <section class="page-header">
       <h1 class="project-name">{{ site.title | default: site.github.repository_name }}</h1>
       <h2 class="project-tagline">{{ site.description | default: site.github.project_tagline }}</h2>
