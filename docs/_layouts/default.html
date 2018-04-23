@@ -7,19 +7,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#157878">
     <link rel="stylesheet" href="{{ '/assets/css/style.css?v=' | append: site.github.build_revision | relative_url }}">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css" integrity="sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4" crossorigin="anonymous">
   </head>
   <body>
-    <header>
-        <div class="container">
-            <nav class="main-nav">
-                <ul>
-                    <li><a href="/">Link1</a></li>
-                    <li><a href="/">Link2</a></li>
-                </ul>
-            </nav>
-            <h1>Project JUnion</h1>
-        </div>
-    </header>
+    
+    <nav class="navbar sticky-top navbar-light bg-faded">
+      <a class="navbar-brand" href="index.md">Project JUnion</a>
+    </nav>
+    
+   
     <section class="page-header">
       <h1 class="project-name">{{ site.title | default: site.github.repository_name }}</h1>
       <h2 class="project-tagline">{{ site.description | default: site.github.project_tagline }}</h2>
