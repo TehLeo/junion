@@ -35,7 +35,7 @@ For information about data alignment [see](https://en.wikipedia.org/wiki/Data_st
 ```java
 @Struct
 public class MixedData {
-	byte Data1;
+    byte Data1;
     short Data2;
     int Data3;
     byte Data4;
@@ -124,7 +124,7 @@ arr[12].x = 5; //throws IndexOutOfBoundsException
 ```java
 @Struct
 public class Line2 {
-	public Vec3 a, b;
+    public Vec3 a, b;
 }
 ```
 
@@ -170,7 +170,7 @@ To check if a reference is null, use Mem.isNull
 ```java
 Node[] n = new Node[10];
 if(!Mem.isNull(n[0].left)) {
-	Node a = n[0].left;
+    Node a = n[0].left;
 }
 ```
 
@@ -195,9 +195,28 @@ for(int i = 0; i < reversed.length; i++) System.out.print(reversed[i].x+",");
 ```
 **Output**
 ```
-a:	    5.0,6.0,7.0,8.0,9.0,
+a:	5.0,6.0,7.0,8.0,9.0,
 b:      5.0,7.0,
 rev:	9.0,8.0,7.0,6.0,5.0,4.0,3.0,2.0,1.0,0.0,
 ```
+#### Generics
 
+````java
+Vec3[] arr = new Vec3[10];
+for(int i = 0; i < arr.length; i++) arr[i].x = i;
 
+ArrayList<Vec3> list = new ArrayList<>();
+list.add(arr[5]);
+list.add(arr[1]);
+list.add(arr[7]);
+
+for(Vec3 v : list) {
+    System.out.println(v.x);
+}
+````
+**Output**
+```
+5.0
+1.0
+7.0
+```
