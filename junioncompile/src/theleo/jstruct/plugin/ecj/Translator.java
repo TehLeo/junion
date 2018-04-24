@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.eclipse.jdt.core.dom.*;
 import theleo.jstruct.hidden.Mem0;
+import theleo.jstruct.plugin.Log;
 import theleo.jstruct.plugin.ecj.StructCache.*;
 
 /**
@@ -42,17 +43,50 @@ public class Translator extends ASTVisitor {
 	public static final String[] AUTO_HYBRID = {"theleo", "jstruct", "hidden", "AutoHybrid"};
 	public static final String[] MEM0 = {"theleo", "jstruct", "hidden", "Mem0"};
 	public static final String[] MEM0_U = {"theleo", "jstruct", "hidden", "Mem0", "u"};
+	public static final String[] BOXED_LONG = {"java", "lang", "Long"};
 	
 	public static final String TYPEBIND_PROP = "theleo.jstruct.CUSTOM_TYPEBIND";
 	public static final String TYPEBIND_METHOD = "theleo.jstruct.METHOD";
+	public static final String TYPEBIND_REF = "theleo.jstruct.METHOD";
+	
+	public static final String REF_SAFE = "SAFE_REF";
+	
 	public static final String METHOD_PTR = "theleo.jstruct.Mem.ptr";
+	
+	public class TypeTranslator extends ASTVisitor {
+		@Override
+		public boolean visit(SimpleType node) {
+			Entry e = entry(node);
+			if(e != null) {
+				replace(node, type(BOXED_LONG));
+				return false;
+			}
+			return true;
+		}
+	}
+	public class FieldTranslator extends ASTVisitor {
+		@Override
+		public boolean visit(SimpleType node) {
+			Entry e = entry(node);
+			if(e != null) {
+				PrimitiveType type = ast.newPrimitiveType(PrimitiveType.LONG);
+				replace(node, type);
+				return false;
+			}
+			return true;
+		}
+	}
 	
 	
 //	HashMap<Object, Object> propertyMap = new HashMap<>();
 	
 	AST ast;
+	TypeTranslator typeTranslator;
+	FieldTranslator fieldTranslator;
 	public Translator(CompilationUnit cu) {
 		ast = cu.getAST();
+		typeTranslator = new TypeTranslator();
+		fieldTranslator = new FieldTranslator();
 	}	
 	public static boolean debug = false;
 	static void err(Object s) {
@@ -160,7 +194,7 @@ public class Translator extends ASTVisitor {
 	}
 
 	@Override
-	public boolean visit(SimpleType node) {	
+	public boolean visit(SimpleType node) {			
 		Entry e = entry(node);
 		if(e != null) {
 			PrimitiveType type = ast.newPrimitiveType(PrimitiveType.LONG);
@@ -169,6 +203,16 @@ public class Translator extends ASTVisitor {
 		}
 		return true;
 	}
+	
+
+	
+
+	@Override
+	public boolean visit(ParameterizedType node) {
+		node.accept(typeTranslator);
+		return false;
+	}
+	
 	@Override
 	public boolean visit(ArrayType node) {		
 		Entry e = entry(node.getElementType());
@@ -240,34 +284,90 @@ public class Translator extends ASTVisitor {
 		return true;
 	}
 
+		@Override
+	public boolean visit(SimpleName node) {
+		if(REF_SAFE.equals(node.getProperty(TYPEBIND_REF))) return true;
+		Entry e = entry(node);
+		if(e != null) {
+			IBinding ib = node.resolveBinding();
+			if(ib != null) {
+				if(ib.getKind() == IBinding.VARIABLE) {
+					IVariableBinding v = (IVariableBinding)ib;
+					if(v.isField()) {
+						node.setProperty(TYPEBIND_REF, REF_SAFE);
+						Expression exp = (Expression)copy(node);
+						
+						MethodInvocation m = ast.newMethodInvocation();
+						m.setExpression(name(MEM0));
+						m.setName(name("ref"));
+						m.arguments().add(exp);
+						m.setProperty(TYPEBIND_PROP, e);
+						m.setProperty(TYPEBIND_METHOD, METHOD_PTR);
+						replace(node, m);
+						return false;
+					}
+				}
+			}
+		}
+		return true;
+	}
+	
 	@Override
 	public boolean visit(QualifiedName node) {
-		err("QUALI NAME " + node);
 		Expression expr = (Expression)translate(node.getQualifier());
 		Entry e = entry(expr);
 		if(e != null) {			
 			replaceFieldAccess(e, node, expr, node.getName().getIdentifier());
 			return false;
 		}
+		else {
+			e = entry(node);
+			if(e != null) replaceFieldAccessJava(e, node, expr, node.getName().getIdentifier(), node.resolveBinding());
+		}
 		return false;
 	}
 
 	@Override
 	public boolean visit(FieldAccess node) {
-		err("FIELD ACCESS " + node);
 		Expression expr = (Expression)translate(node.getExpression());
 		Entry e = entry(expr);
 		if(e != null) {
 			replaceFieldAccess(e, node, expr, node.getName().getIdentifier());
 			return false;
 		}
+		else {
+			e = entry(node);
+			if(e != null) replaceFieldAccessJava(e, node, expr, node.getName().getIdentifier(), node.resolveFieldBinding());
+		}
 		return false;
 	}
 	
+	public void replaceFieldAccessJava(Entry e, Expression node, Expression expr,String identifier, IBinding binding) {
+		if(REF_SAFE.equals(node.getProperty(TYPEBIND_REF))) return;
+		
+		if(binding.getKind() == IBinding.VARIABLE) {
+			IVariableBinding v = (IVariableBinding)binding;
+			if(v.isField()) {
+				node.setProperty(TYPEBIND_REF, REF_SAFE);
+				Expression exp = (Expression)copy(node);
+
+				MethodInvocation m = ast.newMethodInvocation();
+				m.setExpression(name(MEM0));
+				m.setName(name("ref"));
+				m.arguments().add(exp);
+				m.setProperty(TYPEBIND_PROP, e);
+				m.setProperty(TYPEBIND_METHOD, METHOD_PTR);
+				replace(node, m);
+			}	
+		}
+	}
+	
 	public void replaceFieldAccess(Entry e, Expression node, Expression expr, String identifier) {
-		err(" STRUCT ACCESS " + node.toString());
-		err("  STRUCT " + e.binaryName);
-		err("   '" + identifier + "'");
+//		err(" STRUCT ACCESS " + node.toString());
+//		err("  STRUCT " + e.binaryName);
+//		err("   '" + identifier + "'");
+		
+		
 					
 		FieldEntry f = e.offsetTable.get(identifier);
 		if(f == null) CompilerError.exec(CompilerError.STRUCT_FIELD_NOT_FOUND, node.toString());
@@ -335,6 +435,11 @@ public class Translator extends ASTVisitor {
 		Expression expr = null;
 		SimpleName select = null;
 		
+		Entry e = entry(left);
+		if(e != null) {
+			Log.err("ASSIGNMETN VISIT " + node);
+		}
+		
 		if(left instanceof FieldAccess) {
 			FieldAccess fa = (FieldAccess)left;
 			
@@ -347,7 +452,7 @@ public class Translator extends ASTVisitor {
 			select = qn.getName();
 		}
 		if(expr != null) {
-			Entry e = entry(expr);
+			e = entry(expr);
 			if(e != null) {
 				
 				FieldEntry ft = e.offsetTable.get(select.getIdentifier());
@@ -427,9 +532,9 @@ public class Translator extends ASTVisitor {
 		}
 		
 		left = (Expression)translate(left);
-		Entry e = entry(left);
+		e = entry(left);
 		if(e != null) {
-			replace(node, copyObject(e, (Expression)copy(node.getRightHandSide()), (Expression)copy(left)));
+			replace(node, copyObject(e, (Expression)copy(node.getRightHandSide()), (Expression)ASTNode.copySubtree(ast,left)));
 			return false;
 		}
 		
@@ -501,7 +606,7 @@ public class Translator extends ASTVisitor {
 								m0.setExpression(name(MEM0));
 								m0.setName(name("isNull"));
 								m0.setProperty(TYPEBIND_PROP, FieldType.BOOLEAN);
-								m0.arguments().add(copy(nn));
+								m0.arguments().add(ASTNode.copySubtree(ast, nn));
 								replace(node, m0);
 							}
 							return false;
@@ -610,6 +715,12 @@ public class Translator extends ASTVisitor {
 		return super.visit(node);
 	}
 
+	@Override
+	public boolean visit(FieldDeclaration node) {
+		node.accept(fieldTranslator);
+		return false;
+	}
+
 	
 	
 	
@@ -635,9 +746,6 @@ public class Translator extends ASTVisitor {
 		return p;
 	}
 	public Type newType(ITypeBinding typeBinding) {
-		
-		
-		
 		if( typeBinding == null )
 			throw new NullPointerException("typeBinding is null");
 

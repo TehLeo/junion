@@ -166,6 +166,10 @@ public class Mem0 {
 		o = u.getLong(o);
 		return o == 0;
 	}
+	public static long ref(long l) {
+		if(l == 0) throw new NullPointerDereference();
+		return l;
+	}
 	public static long ptr(long l) {
 		l = u.getLong(l);
 		if(l == 0) throw new NullPointerDereference();

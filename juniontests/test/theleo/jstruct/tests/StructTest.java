@@ -65,6 +65,47 @@ public class StructTest {
 		public Vec2 vec2;
 	}
 	
+	long longVal;
+	Vec2 local;
+	static class A {
+		Vec2 aval;
+	}
+	@Test
+	public void testLocal() {
+		long lv = longVal;
+		lv++;
+		try {
+			Vec2 v = local;
+			fail();
+			v.x = 5;
+		}
+		catch(NullPointerDereference e) {}
+		
+		A a = new A();
+		try {
+			Vec2 v = a.aval;
+			fail();
+		}
+		catch(NullPointerDereference e) {}
+		try {
+			System.err.println("a.val " + a.aval);
+			fail();
+		}
+		catch(NullPointerDereference e) {}
+	}
+	
+	@Test
+	public void testArrayList() {
+		Vec2[] arr = new Vec2[10];
+		for(int i = 0; i < arr.length; i++) arr[i].x = i;
+		
+		ArrayList<Vec2> list = new ArrayList<>();
+		list.add(arr[5]);
+		
+		Vec2 a5 = list.get(0);
+		assertTrue(a5.x == 5f);
+	}
+	
 	@Test
 	public void bufferTest() {
 		ByteBuffer b = ByteBuffer.allocateDirect(24).order(ByteOrder.nativeOrder());
