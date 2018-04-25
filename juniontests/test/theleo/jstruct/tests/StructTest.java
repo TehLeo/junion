@@ -92,6 +92,23 @@ public class StructTest {
 			fail();
 		}
 		catch(NullPointerDereference e) {}
+		
+		Vec2[] arr = new Vec2[10];
+		arr[5].y = 10;
+		local = arr[5];
+		assertTrue(local.y == 10);
+		local.y = 7;
+		assertTrue(arr[5].y == 7);
+		
+		local = null;
+		try {
+			Vec2 v = local;
+			fail();
+			v.x = 5;
+		}
+		catch(NullPointerDereference e) {}
+		
+		Mem.tag(arr);
 	}
 	
 	@Test
@@ -242,10 +259,12 @@ public class StructTest {
 		public Name name1;
 		public String c;
 		public Name name2;
+		public A javaObj;
 	}
 	
 	@Test
 	public void testHybrid() {
+		Vec2[] v2 = new Vec2[10];
 		Str[] arr = new Str[10];
 				
 		Str a = arr[5];
@@ -257,7 +276,11 @@ public class StructTest {
 		a.name1.last = "name1.last";
 		a.name2.first = "name2.first";
 		a.name2.last = "name2.last";
-		
+		a.javaObj = new A();
+		try { a.javaObj.aval.x = 10; fail(); }catch(NullPointerDereference e) {}
+		a.javaObj.aval = v2[5];
+		v2[5].x = 10;
+		a.javaObj.aval.y = 12;
 		
 		Str[] arr2 = new Str[10];
 	
@@ -271,6 +294,10 @@ public class StructTest {
 		assertTrue("name1.last".equals(a.name1.last));
 		assertTrue("name2.first".equals(a.name2.first));
 		assertTrue("name2.last".equals(a.name2.last));
+		assertTrue("name2.last".equals(arr2[4].name2.last));
+		assertTrue(!arr2[4].name2.last.isEmpty());
+		assertTrue(a.javaObj.aval.x == 10);
+		assertTrue(a.javaObj.aval.y == 12);
 		
 		Name name1 = a.name1;
 		assertTrue("name1.first".equals(name1.first));
@@ -279,6 +306,8 @@ public class StructTest {
 		name1.last = "change";
 		assertTrue("change".equals(a.name1.last));
 		
+		
+		Mem.tag(v2);
 		Mem.tag(arr);
 		Mem.tag(arr2);
 				

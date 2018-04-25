@@ -99,7 +99,7 @@ public class Translator extends ASTVisitor {
 				copyStack.set(copyStack.size()-1, neww);
 				err("COPY STACK REPLACE");
 				Object oldProp = old.getProperty(TYPEBIND_PROP);
-				if(oldProp != null) {
+				if(oldProp != null && neww.getProperty(TYPEBIND_PROP) == null) {
 					err("   copy old prop");
 					neww.setProperty(TYPEBIND_PROP, oldProp);
 				}
@@ -313,7 +313,7 @@ public class Translator extends ASTVisitor {
 	}
 	
 	@Override
-	public boolean visit(QualifiedName node) {
+	public boolean visit(QualifiedName node) {		
 		Expression expr = (Expression)translate(node.getQualifier());
 		Entry e = entry(expr);
 		if(e != null) {			
@@ -342,19 +342,21 @@ public class Translator extends ASTVisitor {
 		return false;
 	}
 	
-	public void replaceFieldAccessJava(Entry e, Expression node, Expression expr,String identifier, IBinding binding) {
+	public void replaceFieldAccessJava(Entry e, Expression node, Expression translatedExpr,String identifier, IBinding binding) {
 		if(REF_SAFE.equals(node.getProperty(TYPEBIND_REF))) return;
 		
 		if(binding.getKind() == IBinding.VARIABLE) {
 			IVariableBinding v = (IVariableBinding)binding;
 			if(v.isField()) {
 				node.setProperty(TYPEBIND_REF, REF_SAFE);
-				Expression exp = (Expression)copy(node);
+				FieldAccess fa = ast.newFieldAccess();
+				fa.setExpression((Expression)ASTNode.copySubtree(ast, translatedExpr));
+				fa.setName(name(identifier));
 
 				MethodInvocation m = ast.newMethodInvocation();
 				m.setExpression(name(MEM0));
 				m.setName(name("ref"));
-				m.arguments().add(exp);
+				m.arguments().add(fa);
 				m.setProperty(TYPEBIND_PROP, e);
 				m.setProperty(TYPEBIND_METHOD, METHOD_PTR);
 				replace(node, m);
@@ -366,8 +368,6 @@ public class Translator extends ASTVisitor {
 //		err(" STRUCT ACCESS " + node.toString());
 //		err("  STRUCT " + e.binaryName);
 //		err("   '" + identifier + "'");
-		
-		
 					
 		FieldEntry f = e.offsetTable.get(identifier);
 		if(f == null) CompilerError.exec(CompilerError.STRUCT_FIELD_NOT_FOUND, node.toString());
@@ -435,11 +435,8 @@ public class Translator extends ASTVisitor {
 		Expression expr = null;
 		SimpleName select = null;
 		
-		Entry e = entry(left);
-		if(e != null) {
-			Log.err("ASSIGNMETN VISIT " + node);
-		}
-		
+		Entry e;//  = entry(left);
+				
 		if(left instanceof FieldAccess) {
 			FieldAccess fa = (FieldAccess)left;
 			
@@ -453,8 +450,25 @@ public class Translator extends ASTVisitor {
 		}
 		if(expr != null) {
 			e = entry(expr);
-			if(e != null) {
-				
+			if(e == null) {
+				e = entry(left);
+				if(e != null) {
+					//Assignment to reference
+					if(node.getOperator() != Assignment.Operator.ASSIGN) {
+						throw new CompilerError("Assignment operator not supported.");
+					}
+					
+					FieldAccess fa = ast.newFieldAccess();
+					fa.setExpression(expr);
+					fa.setName(name(select.getIdentifier()));
+					
+					node.setLeftHandSide(fa);
+					node.setRightHandSide((Expression)translate(node.getRightHandSide()));
+					
+					return false;
+				}
+			}
+			else {
 				FieldEntry ft = e.offsetTable.get(select.getIdentifier());
 				if(ft == null) CompilerError.exec(CompilerError.STRUCT_FIELD_NOT_FOUND, e.binaryName + " . " + select.getIdentifier());
 				
@@ -531,9 +545,35 @@ public class Translator extends ASTVisitor {
 			}
 		}
 		
+
+		
 		left = (Expression)translate(left);
 		e = entry(left);
 		if(e != null) {
+			if(node.getLeftHandSide() instanceof SimpleName) {
+				SimpleName sn = (SimpleName)node.getLeftHandSide();
+				//Assignment to reference
+				if(node.getOperator() != Assignment.Operator.ASSIGN) {
+					throw new CompilerError("Assignment operator not supported.");
+				}
+				node.setLeftHandSide((Expression)ASTNode.copySubtree(ast,sn));
+				
+				Expression rhs = node.getRightHandSide();
+				if(rhs instanceof NullLiteral) {
+					IBinding b = sn.resolveBinding();
+					if(b instanceof IVariableBinding) {
+					IVariableBinding vb = (IVariableBinding)b;
+						if(!vb.isField()) {
+							throw new CompilerError("Local Reference " + node + " cannot be set to null.");
+						}
+					}
+					
+					node.setRightHandSide(returnLong(0));
+				}
+				else node.setRightHandSide((Expression)copy(rhs));
+				return false;
+			}
+			
 			replace(node, copyObject(e, (Expression)copy(node.getRightHandSide()), (Expression)ASTNode.copySubtree(ast,left)));
 			return false;
 		}
