@@ -35,7 +35,7 @@ With JUnion you can do just that by marking a class with @Struct annotation!
 ```java
 @Struct
 public class Vec3 {
-	public float x,y,z;
+    public float x,y,z;
 }
 ```
 
