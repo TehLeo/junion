@@ -23,7 +23,7 @@ Point[] arr = new Point[500];
 ```
 ```arr``` takes 14016 bytes <br>
 The data consits of 500 points, 2 floats each, thus 4000 bytes should be enough.<br>
-If Point was not a class but a **struct**, it would take ~4000 bytes.
+If Point was a **struct**, ```arr``` would take ~4000 bytes.
 
 Wouldn't it be nice to be able to create struct types in Java that code like class and work like structs?
 
