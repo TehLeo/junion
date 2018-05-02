@@ -27,11 +27,13 @@
 package theleo.jstruct.plugin.ecj;
 
 import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import org.eclipse.jdt.core.dom.*;
-import theleo.jstruct.hidden.Mem0;
-import theleo.jstruct.plugin.Log;
 import theleo.jstruct.plugin.ecj.StructCache.*;
+import static theleo.jstruct.plugin.ecj.StructCache.padding;
 
 /**
  *
@@ -39,6 +41,11 @@ import theleo.jstruct.plugin.ecj.StructCache.*;
  */
 public class Translator extends ASTVisitor {
 	public static final String theleo = "theleo", jstruct = "jstruct", hidden = "hidden";
+	public static final String STACK_OBJ = "$theleo_stack$";
+	public static final String STACK_BASE = "$theleo_stackBase$";
+	public static final String STACK_BASE_OBJ = "$theleo_stackBaseObj$";
+	public static final String STACK_BASE_HI = "$theleo_stackBaseHI$";
+	public static final String[] STACK = {"theleo", "jstruct", "hidden", "Stack"};
 	public static final String[] AUTO_ARRAY = {"theleo", "jstruct", "hidden", "AutoArray"};
 	public static final String[] AUTO_HYBRID = {"theleo", "jstruct", "hidden", "AutoHybrid"};
 	public static final String[] MEM0 = {"theleo", "jstruct", "hidden", "Mem0"};
@@ -47,7 +54,7 @@ public class Translator extends ASTVisitor {
 	
 	public static final String TYPEBIND_PROP = "theleo.jstruct.CUSTOM_TYPEBIND";
 	public static final String TYPEBIND_METHOD = "theleo.jstruct.METHOD";
-	public static final String TYPEBIND_REF = "theleo.jstruct.METHOD";
+	public static final String TYPEBIND_REF = "theleo.jstruct.REF";
 	
 	public static final String REF_SAFE = "SAFE_REF";
 	
@@ -76,6 +83,41 @@ public class Translator extends ASTVisitor {
 			return true;
 		}
 	}
+	public class StackAllocInitializerChecker extends ASTVisitor {
+		Entry e;
+		String varName;
+		BitSet b = new BitSet();
+		
+		public void init(Entry e, String varName) {
+			this.e = e;
+			this.varName = varName+'.';
+			if(e.initCheckBitsNum > b.size()) b = new BitSet(b.size()<<1);
+			else b.clear();
+		}
+		
+		public boolean isInitialized() {
+			return b.cardinality() == e.initCheckBitsNum;
+		}
+		
+		@Override
+		public boolean visit(Assignment node) {
+			Expression left = node.getLeftHandSide();
+			
+			String v = left.toString();
+			if(v.startsWith(varName)) {
+				String field = v.substring(varName.length());
+				
+				Long l = e.initCheck.get(field);
+				if(l != null) {
+					int pos = (int)(l&0xffffffff);
+					int rep = (int)(l>>32);
+					for(int i = 0; i < rep; i++) b.set(pos+i);
+				}			
+			}
+			
+			return true;
+		}
+	}
 	
 	
 //	HashMap<Object, Object> propertyMap = new HashMap<>();
@@ -83,10 +125,12 @@ public class Translator extends ASTVisitor {
 	AST ast;
 	TypeTranslator typeTranslator;
 	FieldTranslator fieldTranslator;
+	StackAllocInitializerChecker stackAllocChecker;
 	public Translator(CompilationUnit cu) {
 		ast = cu.getAST();
 		typeTranslator = new TypeTranslator();
 		fieldTranslator = new FieldTranslator();
+		stackAllocChecker = new StackAllocInitializerChecker();
 	}	
 	public static boolean debug = false;
 	static void err(Object s) {
@@ -192,6 +236,29 @@ public class Translator extends ASTVisitor {
 		
 		return StructCache.get(name);
 	}
+	public Statement parentStatement(ASTNode node) {
+		while(node != null)
+			if(node instanceof Statement) return (Statement)node;
+			else node = node.getParent();
+		return null;
+	}
+	public Statement nextStatement(Statement s) {
+		int i = statementIndex(s);
+		if(i == -1) return null;
+		Block b = (Block)s.getParent();
+		List l = b.statements();
+		i++;
+		if(i < l.size()) return (Statement)l.get(i);
+		return null;
+	}
+	public int statementIndex(Statement s) {
+		Block b = (Block)s.getParent();
+		List l = b.statements();
+		for(int i = 0 ; i < l.size(); i++) {
+			if(l.get(i) == s) return i;
+		}
+		return -1;
+	}
 
 	@Override
 	public boolean visit(SimpleType node) {			
@@ -204,9 +271,6 @@ public class Translator extends ASTVisitor {
 		return true;
 	}
 	
-
-	
-
 	@Override
 	public boolean visit(ParameterizedType node) {
 		node.accept(typeTranslator);
@@ -668,10 +732,93 @@ public class Translator extends ASTVisitor {
 
 							replace(node, returnInt(ival));
 							return false;
+						case "stack":
+							e = typeLiteral(node.arguments().get(0));
+							MethodFrame mf = getMethod();
+							NumberLiteral pos = (NumberLiteral)returnLong(0);
+							
+							Statement s = parentStatement(node);
+							Statement next = nextStatement(s);
+							
+							if(next instanceof Block) {
+								Block init = (Block)next;
+								
+								VariableDeclarationFragment frag = (VariableDeclarationFragment)node.getParent();
+								stackAllocChecker.init(e, frag.getName().getIdentifier());
+
+								init.accept(stackAllocChecker);
+								
+								if(!stackAllocChecker.isInitialized()) {
+									CompilerError.exec(CompilerError.STACK_VARIABLE_NOT_INITIALIZED, s.toString());
+								}
+							}
+							else CompilerError.exec(CompilerError.STACK_VARIABLE_NOT_INITIALIZED, s.toString());
+							
+							InfixExpression op = ast.newInfixExpression();
+							op.setLeftOperand(name(STACK_BASE));
+							op.setOperator(InfixExpression.Operator.PLUS);
+							op.setRightOperand(pos);
+							op.setProperty(TYPEBIND_PROP, FieldType.LONG);
+							
+							if(e.hasJavaObjects()) {
+								NumberLiteral posObj = (NumberLiteral)returnLong(0);
+								
+								mf.add(e, pos, posObj);
+								
+								InfixExpression op2 = ast.newInfixExpression();
+								op2.setLeftOperand(name(STACK_BASE_OBJ));
+								op2.setOperator(InfixExpression.Operator.PLUS);
+								op2.setRightOperand(posObj);
+								op2.setProperty(TYPEBIND_PROP, FieldType.LONG);
+								
+								MethodInvocation mi = ast.newMethodInvocation();
+								mi.setExpression(name(MEM0));
+								mi.setName(name("allocHybOnStack"));							
+								mi.setProperty(TYPEBIND_PROP, FieldType.LONG);
+								List args = mi.arguments();
+								args.add(op);
+								args.add(op2);
+								args.add(name(STACK_BASE_HI));
+								for(int i = 0; i < e.objOffsets.length; i++) {
+									args.add(returnLong(e.objOffsets[i]));
+									args.add(returnLong(e.objCounts[i]));
+								}
+								
+								replace(node, mi);
+							}
+							else {
+								mf.add(e, pos);
+
+								
+
+								replace(node, op);
+							}
+							return false;
 						case "layoutString":
 							e = typeLiteral(node.arguments().get(0));
 							
 							replace(node, e == null? ast.newNullLiteral(): returnString(e.getStructLayout()));
+							return false;
+					}
+				}
+				else if(binName.equals("theleo.jstruct.hidden.Mem0")) {
+					Entry e; 
+					String metName = m.getName();
+					switch(metName) {
+						case "stackRaw":
+							e = typeLiteral(node.arguments().get(0));
+							MethodFrame mf = getMethod();
+							NumberLiteral pos = (NumberLiteral)returnLong(0);
+
+							mf.add(e, pos);
+							
+							InfixExpression op = ast.newInfixExpression();
+							op.setLeftOperand(name(STACK_BASE));
+							op.setOperator(InfixExpression.Operator.PLUS);
+							op.setRightOperand(pos);
+							op.setProperty(TYPEBIND_PROP, FieldType.LONG);
+							
+							replace(node, op);
 							return false;
 					}
 				}
@@ -760,7 +907,231 @@ public class Translator extends ASTVisitor {
 		node.accept(fieldTranslator);
 		return false;
 	}
+	
+	
+	public static class StackAllocReq {
+		public int index;
+		public int offset = 0;
+		public Entry type;
+		public NumberLiteral num;
+		
+		public NumberLiteral posObj;
+		public StackAllocReq(int index, Entry type, NumberLiteral num) {
+			this.index = index;
+			this.type = type;
+			this.num = num;
+		}
 
+		public StackAllocReq(int index, Entry type, NumberLiteral num, NumberLiteral posObj) {
+			this.index = index;
+			this.type = type;
+			this.num = num;
+			this.posObj = posObj;
+		}
+		
+	}
+	public static class MethodFrame {
+		ArrayList<StackAllocReq> stackAlloc;
+		public void add(Entry e, NumberLiteral nm) {
+			if(stackAlloc == null) stackAlloc = new ArrayList<>();
+			stackAlloc.add(new StackAllocReq(stackAlloc.size(), e, nm));
+		}
+		public void add(Entry e, NumberLiteral nm,NumberLiteral posObj) {
+			if(stackAlloc == null) stackAlloc = new ArrayList<>();
+			stackAlloc.add(new StackAllocReq(stackAlloc.size(), e, nm, posObj));
+		}
+	}
+	
+	
+	
+	ArrayList<MethodFrame> methodStack = new ArrayList<>();
+	public MethodFrame getMethod() {
+		return methodStack.get(methodStack.size()-1);
+	}
+
+	@Override
+	public boolean visit(MethodDeclaration node) {
+		methodStack.add(new MethodFrame());
+		return true;
+	}
+
+	@Override
+	public void endVisit(MethodDeclaration node) {
+		MethodFrame mFrame = methodStack.remove(methodStack.size()-1);
+		if(mFrame.stackAlloc != null) {			
+			boolean reorder = false;
+			int stackSize = 0;
+			ArrayList<StackAllocReq> fields = mFrame.stackAlloc;
+			int stackSizeObj = 0;
+			for(int i = 0; i < fields.size(); i++) {
+				StackAllocReq r = fields.get(i);
+				Entry e = r.type;
+				if(e.hasJavaObjects()) {
+					stackSizeObj += e.objOffsets.length;
+				}
+				
+				r.offset = stackSize;
+				if(e.align != 0) {
+					reorder |= (r.offset%e.align) != 0;
+				}
+				stackSize += e.structSizeNoEndPadding();
+			}
+			
+			if(reorder) {
+				Collections.sort(fields, REORDER_COMP);
+
+				for(int i = 0; i < fields.size(); i++)
+					fields.get(i).offset = -1;
+
+//				objEntry = null;
+				int offset = 0;
+				stackSize = 0;
+				for(int i = 0; i < fields.size(); i++) {						
+					StackAllocReq f = fields.get(i);
+					//check if already used to fill padding
+					if(f.offset != -1) continue;
+//					if(f.type == FieldType.OBJECT && objEntry != null) {
+//						f.offset = objEntry.offset;
+//						continue;
+//					}
+
+					long padding = padding(offset, f.type.align);
+					if(padding > 0) {
+						//check if padding can be filled
+						for(int j = 0; j < fields.size(); j++) {
+							if(i == j) continue;
+							StackAllocReq f2 = fields.get(j);
+							if(f2.offset != -1) continue;
+							if(f2.type.structSizeNoEndPadding() > padding) continue;
+							if(f2.type.structSizeNoEndPadding() == padding) {
+//								if(f2.type == FieldType.OBJECT) objEntry = f2;
+								f2.offset = offset;
+								offset += padding;
+								padding = 0;
+								break;
+							} else {
+								long pad2 = padding(offset, f2.type.align);
+								if(pad2 == 0) {
+//									if(f2.type == FieldType.OBJECT) objEntry = f2;
+									f2.offset = offset;
+									offset += f2.type.structSizeNoEndPadding();
+									padding -= f2.type.structSizeNoEndPadding();
+									if(padding == 0) break;
+									j = -1;
+								}
+							}
+						}
+					}
+//					if(f.type == FieldType.OBJECT) objEntry = f;
+					offset += padding;
+					f.offset = offset;
+					offset += f.type.structSizeNoEndPadding();
+				}
+				for(int i = 0; i < fields.size(); i++) {
+					StackAllocReq f = fields.get(i);
+					stackSize = Math.max(stackSize, f.offset+f.type.structSizeNoEndPadding());
+				}
+			}
+		
+			long endPadding = padding(stackSize, 8);
+			stackSize += endPadding;
+			
+			for(int i = 0; i < fields.size(); i++) {
+				StackAllocReq r = fields.get(i);
+				r.num.setToken(""+r.offset);
+			}
+			
+			if(stackSizeObj != 0) {
+				int objs = 0;
+				Collections.sort(fields, OFFSET_COMP);
+				for(int i = 0; i < fields.size(); i++) {
+					StackAllocReq r = fields.get(i);
+					if(r.type.hasJavaObjects()) {
+						r.posObj.setToken(""+objs);
+						objs += r.type.objOffsets.length;
+					}
+				}	
+			}
+			
+		
+			MethodInvocation stack = ast.newMethodInvocation();
+			stack.setExpression(name(MEM0));
+			stack.setName(name("stack"));
+			stack.setProperty(TYPEBIND_PROP, FieldType.LONG);
+			
+			MethodInvocation get = ast.newMethodInvocation();
+			get.setExpression(name(STACK_OBJ));
+			get.setName(name("get"));
+			get.arguments().add(returnInt(stackSize));
+			get.setProperty(TYPEBIND_PROP, FieldType.LONG);
+			
+			MethodInvocation pop = ast.newMethodInvocation();
+			pop.setExpression(name(STACK_OBJ));
+			pop.setName(name("pop"));
+			pop.arguments().add(name(STACK_BASE));
+			if(stackSizeObj != 0) pop.arguments().add(name(STACK_BASE_OBJ));
+			pop.setProperty(TYPEBIND_PROP, FieldType.LONG);
+			
+			VariableDeclarationFragment fragObj = ast.newVariableDeclarationFragment();
+			fragObj.setName(name(STACK_OBJ));
+			fragObj.setInitializer(stack);
+			
+			VariableDeclarationStatement stackObj = ast.newVariableDeclarationStatement(fragObj);
+			stackObj.setType(type(STACK));
+			
+			VariableDeclarationFragment fragBase = ast.newVariableDeclarationFragment();
+			fragBase.setName(name(STACK_BASE));
+			fragBase.setInitializer(get);
+			
+			VariableDeclarationStatement stackBase = ast.newVariableDeclarationStatement(fragBase);
+			stackBase.setType(ast.newPrimitiveType(PrimitiveType.LONG));
+			
+			Block finallyBlock = ast.newBlock();
+			finallyBlock.statements().add(ast.newExpressionStatement(pop));
+			
+			TryStatement t = ast.newTryStatement();
+			t.setBody((Block)ASTNode.copySubtree(ast, node.getBody()));
+			t.setFinally(finallyBlock);
+			
+			Block newbody = ast.newBlock();
+			List statements = newbody.statements();
+			statements.add(stackObj);
+			statements.add(stackBase);
+			
+			if(stackSizeObj != 0) {
+				MethodInvocation getObj = ast.newMethodInvocation();
+				getObj.setExpression(name(STACK_OBJ));
+				getObj.setName(name("getObj"));
+				getObj.arguments().add(returnInt(stackSizeObj));
+				getObj.setProperty(TYPEBIND_PROP, FieldType.INT);
+				
+				VariableDeclarationFragment fragBaseObj = ast.newVariableDeclarationFragment();
+				fragBaseObj.setName(name(STACK_BASE_OBJ));
+				fragBaseObj.setInitializer(getObj);
+			
+				VariableDeclarationStatement stackBaseObj = ast.newVariableDeclarationStatement(fragBaseObj);
+				stackBaseObj.setType(ast.newPrimitiveType(PrimitiveType.INT));
+				statements.add(stackBaseObj);
+				
+				FieldAccess fa = ast.newFieldAccess();
+				fa.setExpression(name(STACK_OBJ));
+				fa.setName(name("hybridIndex"));
+				
+				VariableDeclarationFragment fragBaseObj2 = ast.newVariableDeclarationFragment();
+				fragBaseObj2.setName(name(STACK_BASE_HI));
+				fragBaseObj2.setInitializer(fa);
+			
+				VariableDeclarationStatement stackBaseObj2 = ast.newVariableDeclarationStatement(fragBaseObj2);
+				stackBaseObj2.setType(ast.newPrimitiveType(PrimitiveType.INT));
+				statements.add(stackBaseObj2);
+			}
+			
+			statements.add(t);
+			node.setBody(newbody);
+		}
+	}
+	
+	
 	
 	
 	
@@ -835,4 +1206,23 @@ public class Translator extends ASTVisitor {
 		}
 		return ast.newSimpleType(ast.newName(qualName));
 	}
+	
+	
+	private static final Comparator<StackAllocReq> OFFSET_COMP =
+				new Comparator<StackAllocReq>() {
+			@Override
+			public int compare(StackAllocReq o1, StackAllocReq o2) {
+				return o1.offset - o2.offset;
+			}
+		};
+	private static final Comparator<StackAllocReq> REORDER_COMP =
+				new Comparator<StackAllocReq>() {
+			@Override
+			public int compare(StackAllocReq o1, StackAllocReq o2) {
+				if(o1.type.align == o2.type.align) {
+					return o1.index - o2.index;
+				}
+				return (o2.type.align - o1.type.align);
+			}
+		};
 }

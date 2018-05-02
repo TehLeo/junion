@@ -40,17 +40,12 @@ import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.compiler.IProblem;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
-import org.eclipse.jdt.core.dom.ASTRequestor;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.FileASTRequestor;
 import org.eclipse.jdt.core.dom.IBinding;
 import org.eclipse.jdt.core.dom.PackageDeclaration;
-import org.eclipse.jdt.internal.compiler.env.ICompilationUnit;
-import org.eclipse.jdt.internal.corext.dom.ASTFlattener;
 import org.eclipse.jface.text.Document;
 import org.eclipse.text.edits.TextEdit;
-import theleo.jstruct.hidden.Mem0;
-import theleo.jstruct.plugin.ecj.ReadableFlattener;
 import theleo.jstruct.plugin.ecj.StructCache;
 import theleo.jstruct.plugin.ecj.Translator;
 
@@ -59,7 +54,7 @@ import theleo.jstruct.plugin.ecj.Translator;
  * @author Juraj Papp
  */
 public class SourceCompiler {
-	public static final String jstruct_version = "1.0";
+	public static final String jstruct_version = "1.1.0";
 
 	public static class Args {
 		
@@ -137,7 +132,9 @@ public class SourceCompiler {
 			
 			if(sourceVersion == null) throw new IllegalArgumentException("Source version not set: -source <1.8, 10 etc>");
 			if(sourcepath == null) sourcepath = new String[0];
+			else sourcepath = filterNonExisting(sourcepath);
 			if(classpath == null) classpath = new String[0];
+			else classpath = filterNonExisting(classpath);
 			if(outpath == null) throw new IllegalArgumentException("Output directory not specified: -d <path> ");
 			if(sourcefiles == null || sourcefiles.length == 0) {
 				//find all java files
@@ -203,20 +200,7 @@ public class SourceCompiler {
 	}
 	static int success = 0;
 	public static void main(String[] rawArgs) {
-
-//		rawArgs = new String[] {
-//			"-classpath", "/media/leo/Kaiba/workspaces/runtime-EclipseApplication/Test/bin:/media/leo/Kaiba/workspaces/craft/JStructEcj/dist/lib/org.eclipse.core.contenttype_3.6.0.v20170207-1037.jar:/media/leo/Kaiba/workspaces/craft/JStructEcj/dist/lib/org.eclipse.core.jobs_3.9.1.v20170714-0547.jar:/media/leo/Kaiba/workspaces/craft/JStructEcj/dist/lib/org.eclipse.core.resources_3.12.0.v20170417-1558.jar:/media/leo/Kaiba/workspaces/craft/JStructEcj/dist/lib/org.eclipse.core.runtime_3.13.0.v20170207-1030.jar:/media/leo/Kaiba/workspaces/craft/JStructEcj/dist/lib/org.eclipse.equinox.common_3.9.0.v20170207-1454.jar:/media/leo/Kaiba/workspaces/craft/JStructEcj/dist/lib/org.eclipse.equinox.preferences_3.7.0.v20170126-2132.jar:/media/leo/Kaiba/workspaces/craft/JStructEcj/dist/lib/org.eclipse.osgi_3.12.50.v20170928-1321.jar:/media/leo/Kaiba/workspaces/craft/JStructEcj/dist/lib/org.eclipse.text_3.6.100.v20170203-0814.jar:/media/leo/Kaiba/workspaces/craft/JStructEcj/dist/lib/org.eclipse.jdt.compiler.tool_1.2.101.v20180329-0935.jar:/media/leo/Kaiba/workspaces/craft/JStructEcj/dist/lib/org.eclipse.jdt.core.manipulation_1.9.100.v20180321-0831.jar:/media/leo/Kaiba/workspaces/craft/JStructEcj/dist/lib/org.eclipse.jdt.core_3.13.102.v20180330-0919.jar:/media/leo/Kaiba/workspaces/craft/JStructEcj/dist/lib/tools.jar:/media/leo/Kaiba/workspaces/craft/JStructEcj/dist/JStructEcj.jar",
-//			"-sourcepath", "/media/leo/Kaiba/workspaces/runtime-EclipseApplication/Test/src",
-//			"-outputpath", "/media/leo/Kaiba/workspaces/runtime-EclipseApplication/Test/generated_src_jstruct",
-//			"-source", "1.8",
-//			"-incrementalsource", "\"/media/leo/Kaiba/workspaces/runtime-EclipseApplication/Test\" \"/media/leo/Kaiba/workspaces/runtime-EclipseApplication/Test/bin\" \"/media/leo/Kaiba/workspaces/runtime-EclipseApplication/Test/bin/test\" \"/media/leo/Kaiba/workspaces/runtime-EclipseApplication/Test/bin/test/Main$Vec3.class\" \"/media/leo/Kaiba/workspaces/runtime-EclipseApplication/Test/bin/test/Main.class\" \"/media/leo/Kaiba/workspaces/runtime-EclipseApplication/Test/src\" \"/media/leo/Kaiba/workspaces/runtime-EclipseApplication/Test/src/test\" \"/media/leo/Kaiba/workspaces/runtime-EclipseApplication/Test/src/test/Main.java\""
-//		
-//		
-//		};
-
-		System.err.println(Arrays.toString(rawArgs));
-		
-		
+		System.err.println("junion v" + jstruct_version + ':' + Arrays.toString(rawArgs));
 		
 		try {
 			Args args = new Args(rawArgs);
@@ -248,6 +232,8 @@ public class SourceCompiler {
 			String[] classpath = args.classpath;
 			String[] sources = args.sourcepath;
 			String[] sourceFilePaths = args.sourcefiles;
+			
+			
 
 			//TODO
 //			String[] encodings = new String[sources.length];
@@ -383,6 +369,16 @@ public class SourceCompiler {
 		parser.setCompilerOptions(options);
 
 		return parser;
+	}
+	public static String[] filterNonExisting(String[] files) {
+		ArrayList<String> list = new ArrayList<>();
+		for(int i = 0; i < files.length; i++) {
+			String path = files[i].trim();
+			File f = new File(path);
+			if(f.exists()) list.add(path);
+			else System.err.print("WARNING: path " + path + " does not exists. Ignoring.");
+		}
+		return list.toArray(new String[list.size()]);
 	}
 	public static int count(String s, char ch) {
 		int c = 0;

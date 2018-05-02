@@ -32,6 +32,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.eclipse.jdt.core.dom.AST;
@@ -85,9 +86,10 @@ public class StructCache {
 			@Override
 			public int compare(FieldEntry o1, FieldEntry o2) {
 				if(o1.align == o2.align) {
-					if(o1.offset == o2.offset)
-						return o1.offset - o2.offset;
-					else return o2.size - o1.size;
+//					if(o1.offset == o2.offset)
+//						return o1.offset - o2.offset;
+//					else return o2.size - o1.size;
+					return o1.sortOrder - o2.sortOrder;
 				}
 				return (o2.align - o1.align);
 			}
@@ -232,6 +234,9 @@ public class StructCache {
 		boolean defined = false;
 		public String structLayout;
 		
+		public int initCheckBitsNum = 0;
+		public HashMap<String, Long> initCheck;
+		
 		public void initialize(ITypeBinding ib) {
 			this.binaryName = ib.getBinaryName();
 			Class cls = null;
@@ -261,6 +266,7 @@ public class StructCache {
 			
 			if(isStruct) {
 				offsetTable = new HashMap<>();
+				initCheck = new HashMap<>();
 				structSize = 0;
 				structSizeWithoutPadding = 0;
 				align = 0;
@@ -536,6 +542,22 @@ public class StructCache {
 				if(reorder && !canReorder) {
 					throw new CompilerError("Autopadding disabled: Invalid structre! Default layout: " + getStructLayout());
 				}
+				
+				int bit = 0;
+				for(FieldEntry f : fields) {
+					if(f.isStruct()) {
+						Entry e = f.structType;
+						initCheck.put(f.name, (bit) | ( ((long)e.initCheckBitsNum) << 32 ));
+						for(Map.Entry<String, Long> v : e.initCheck.entrySet()) {
+							initCheck.put(f.name+'.'+v.getKey(), (bit+(v.getValue()&0xffffffff)) | (0x100000000L));
+						}
+						bit += e.initCheckBitsNum;
+					}
+					else {
+						initCheck.put(f.name, (bit++) | (0x100000000L));
+					}
+				}
+				initCheckBitsNum = bit;
 				
 				defined = true;
 				for(FieldEntry f : fields) {

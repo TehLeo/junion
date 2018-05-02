@@ -45,10 +45,91 @@ import theleo.jstruct.hidden.Mem0;
 public class StructTest {
 	
 	@Struct
+	public static class L2 {
+		public V3 a;
+		public V3 b;
+		@Reference public V3 c;
+		String str;
+	}
+	
+	@Struct
+	public static class V3 {
+		public double x;
+		public float y;
+	}
+	
+	@Struct
+	public static class F {
+		public float value;
+	}
+	
+	@Struct
+	public static class Str2 {
+		String a, b;
+	}
+	
+	public static void add(V3 a, V3 b, V3 store) {
+		V3 l = Mem.stack(V3.class);
+		{ l.x = 1+a.x; l.y = 2+b.y; }
+		assertTrue(l.x == 1+a.x);
+		assertTrue(l.y == 2+b.y);
+		
+		store.x = a.x+b.x;
+		store.y = a.y+b.y;
+	}
+	
+	@Test
+	public void stackTest() {
+		Str2 str = Mem.stack(Str2.class);
+		{ str.a = "Hello"; str.b = "Stack"; }
+		
+		assertTrue(str.a.equals("Hello"));
+		assertTrue(str.b.equals("Stack"));
+		
+		F fRaw = Mem0.stackRaw(F.class);
+		fRaw.value = 77;
+		assertTrue(fRaw.value == 77);
+		
+		F f = Mem.stack(F.class);
+		{ f.value = 7; }
+		
+		assertTrue(f.value == 7);
+		
+		V3 v = Mem.stack(V3.class); 
+		{ v.x = 10; v.y = 100; }
+		
+		V3 add = Mem0.stackRaw(V3.class);
+		add(v, v, add);
+		
+		assertTrue(add.x == 20);
+		assertTrue(add.y == 200);
+		
+		L2 l = Mem.stack(L2.class);
+		{
+			l.a.x = 5;
+			l.a.y = 10;
+			l.b = v;
+			l.c = v;
+			l.str = "Hello";
+		}
+		assertTrue(l.b.y == 100);
+		assertTrue(l.str.equals("Hello"));
+					
+		int a = 5;
+		if(a == 5) {
+			V3 v2 = Mem.stack(V3.class);
+			{ v2.x = 5; v2.y = 15; }
+			assertTrue(v2.x == 5);
+			assertTrue(v2.y == 15);
+		}
+		
+		
+	}
+	
+	@Struct
 	public static class Vec2 {
 		public float x, y;
 	}
-	
 	@Struct
 	public static class Vec3 {
 		public byte byte_;
@@ -277,7 +358,7 @@ public class StructTest {
 		a.name2.first = "name2.first";
 		a.name2.last = "name2.last";
 		a.javaObj = new A();
-		try { a.javaObj.aval.x = 10; fail(); }catch(NullPointerDereference e) {}
+		try { a.javaObj.aval.x = 10; fail(); } catch(NullPointerDereference e) {}
 		a.javaObj.aval = v2[5];
 		v2[5].x = 10;
 		a.javaObj.aval.y = 12;

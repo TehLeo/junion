@@ -26,37 +26,43 @@
  */
 package theleo.jstruct.hidden;
 
-import theleo.jstruct.hidden.Ref1;
 import java.lang.reflect.Field;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicLongArray;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import sun.misc.Unsafe;
 import theleo.jstruct.NullPointerDereference;
+import theleo.jstruct.StackOutOfMemory;
 import theleo.jstruct.WildPointerException;
-import theleo.jstruct.hidden.AutoArray;
 
 /**
  *
  * @author Juraj Papp
  */
 public class Mem0 {
+	public static long STACK_INIT_SIZE = 1024;
+	public static long STACK_MAX_SIZE = 262144;
+	public static int STACK_INIT_OBJ_SIZE = 32;
+	public static int STACK_MAX_OBJ_SIZE = 262144;
+	
 	public static final Unsafe u;
+	private static final long BLOCKER_LOCK_OFFSET;
+
 	static {
 		u = getUnsafe();
+		Field f = null;
+		long offset = 0;
+		try {
+			f = Thread.class.getDeclaredField("blockerLock");
+			f.setAccessible(true);
+			offset = Mem0.u.objectFieldOffset(f);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("Could not initialize");
+		}		
+		BLOCKER_LOCK_OFFSET = offset;
 	}
 	static final Object allocOwner = new Object();
 	static final Object ownersDataLock = new Object();
 	static Object[][] ownersData = new Object[128][];
 	static int lastFreeOwner = 0;
-	
-	public static <T> T as(Object o) {
-		return (T)o;
-	}
 	
 	public static <T> T getObject(long addr, int offset) {
 		return getObject0(u.getInt(addr), u.getInt(addr+4) + offset);
@@ -89,16 +95,9 @@ public class Mem0 {
 		a[owner][i]=o;
 	}
 	
-		
-	public static AutoHybrid allocHybrid(long length, long structSize, boolean zero, int glObjCount, int... ownerOffet) {
-		long allocSize = length*structSize;
-		long base = alloc(allocSize);
-		if(zero) u.setMemory(base, allocSize, (byte)0);
-		AutoHybrid auto = new AutoHybrid(base, length, structSize, glObjCount);
-		
-		if(length == 0) return auto;
-		int found = -1;
+	public static int allocObjectArray(Object[] arr) {
 		synchronized(allocOwner) {
+			int found = -1;
 			Object[] odata = ownersData;
 			int l = lastFreeOwner;
 			int size = odata.length;
@@ -124,10 +123,36 @@ public class Mem0 {
 				}
 				found = size;
 			}
-			odata[found] = auto.hybridData;
-			auto.hybridIndex = found;
+			odata[found] = arr;
 			lastFreeOwner = found+1;
+			return found;
 		}
+	}
+	
+	public static long allocHybOnStack(long addr, int posObj, int hybridIndex, int... ownerOffet) {
+//		if(zero) u.setMemory(base, allocSize, (byte)0);
+		
+		for(int i = 0; i < ownerOffet.length; i += 2) {
+			int off = ownerOffet[i];
+			int count = ownerOffet[i+1];
+
+			u.putInt(addr+off, hybridIndex);
+			u.putInt(addr+off+4, posObj);
+			posObj += count;
+		}
+		
+		return addr;
+	}
+		
+	public static AutoHybrid allocHybrid(long length, long structSize, boolean zero, int glObjCount, int... ownerOffet) {
+		long allocSize = length*structSize;
+		long base = alloc(allocSize);
+		if(zero) u.setMemory(base, allocSize, (byte)0);
+		AutoHybrid auto = new AutoHybrid(base, length, structSize, glObjCount);
+		
+		if(length == 0) return auto;
+		int found = allocObjectArray(auto.hybridData);
+		auto.hybridIndex = found;
 		int index = 0;
 		for(long l = 0; l < length; l++) {
 			for(int i = 0; i < ownerOffet.length; i += 2) {
@@ -155,9 +180,59 @@ public class Mem0 {
 		u.freeMemory(ptr);
 		ownersData[hybridIndex] = null;
 	}
+	public static void freeObjectArray(int hybridIndex) {
+		ownersData[hybridIndex] = null;
+	}
 	public static void free(long ptr) {
 		u.freeMemory(ptr);
 	}
+	
+	public static Stack stack() {
+		Thread t = Thread.currentThread();
+		Object o = Mem0.u.getObject(t, BLOCKER_LOCK_OFFSET);
+		if(o instanceof Stack) {
+			return (Stack)o;
+		}
+		else {
+			Stack s = new Stack(STACK_INIT_SIZE, STACK_INIT_OBJ_SIZE);
+			synchronized(o) {
+				Mem0.u.putObject(t, BLOCKER_LOCK_OFFSET, s);
+			}
+			return s;
+		}
+	}
+	
+	public static void stackGrowArray(Stack s) {
+		long size = s.hybridData.length<<1;
+		if(size > Mem0.STACK_MAX_OBJ_SIZE) throw new StackOutOfMemory();
+		Object[] arr = new Object[(int)size];
+		System.arraycopy(s.hybridData, 0, arr, 0, s.hybridData.length);
+		s.hybridData = arr;
+		//Synchronization for visibility update should not be necessary
+		//since stack is used by single thread.
+		ownersData[s.hybridIndex] = arr;
+	}
+	
+	/**
+	 * Allows to reinterpret cast struct type.
+	 *  
+	 * @param o - struct type
+	 * @return 
+	 */
+	public static <T> T as(Object o) {
+		return (T)o;
+	}
+	
+	/**
+	 * Allocates struct on thread's stack. As with any stack allocation, 
+	 * stack allocated structs are valid until the method returns.
+	 * 
+	 * @param classLiteral class literal
+	 * @return stack allocated struct
+	 */
+	public static <T> T stackRaw(Class<T> classLiteral) { throw new CompileException(); }
+	
+	
 	
 	public static boolean isNull(Object o) {
 		return o == null;

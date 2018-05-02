@@ -53,6 +53,10 @@ public class CompilerError extends RuntimeException {
 		}
 		
 	}
+	public static Action STACK_VARIABLE_NOT_INITIALIZED = new Action("Stack variable %s not initialized. ", ActionType.ERROR);
+
+	
+	
 	public static Action STRUCT_MISSING_ORDER = new Action("Struct: %s is missing field order information. Recompile to resolve. ", ActionType.WARNING);
 	public static Action STRUCT_ORDER_MISMATCH = new Action("Struct: %s field order is different.", ActionType.ERROR);
 	

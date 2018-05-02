@@ -42,6 +42,28 @@ import theleo.jstruct.hidden.Ref1;
 public class Mem {
 	
 	/**
+	 * Allocates struct on thread's stack. As with any stack allocation, 
+	 * stack allocated structs are valid until the method returns.
+	 * <br><br>
+	 * <b>Stack allocated structs require initialization. Initialization is achieved with the
+	 * following syntax:</b>
+	 * 
+	 * Usage:
+	 * <pre>
+	 * Vec3 v = Mem.stack(Vec3.class);
+	 * { v.x = 1; v.y = 2; v.z = 3; }
+	 * </pre>
+	 * 
+	 * If you do not want to use initialization, you can use
+	 *  {@link theleo.jstruct.hidden.Mem0#stackRaw(java.lang.Class)}. 
+	 * 
+	 * @param classLiteral class literal
+	 * @return stack allocated struct
+	 * @see theleo.jstruct.hidden.Mem0#stackRaw(java.lang.Class)
+	 */
+	public static <T> T stack(Class<T> classLiteral) { throw new CompileException(); }
+		
+	/**
 	 * Frees the allocated struct array.
 	 * This method is not required to be called.
 	 * Allocated arrays are freed automatically when
@@ -50,6 +72,17 @@ public class Mem {
 	 * @param ptr 
 	 */
 	public static void free(Ref1 ptr) {
+		ptr.close();
+	}
+	/**
+	 * Frees the allocated struct array.
+	 * This method is not required to be called.
+	 * Allocated arrays are freed automatically when
+	 * they are garbage collected.
+	 * 
+	 * @param ptr 
+	 */
+	public static void free(Hyb1 ptr) {
 		ptr.close();
 	}
 	/**

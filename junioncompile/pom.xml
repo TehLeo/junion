@@ -1,0 +1,165 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+ <modelVersion>4.0.0</modelVersion>
+
+ <groupId>com.github.tehleo</groupId>
+ <artifactId>junionc</artifactId>
+ <version>1.1.0</version>
+ <packaging>jar</packaging>
+
+ <name>JUnionc</name>
+ <description>Delivers struct types to Java programming language.</description>
+ <url>https://github.com/TehLeo/junion</url>
+ <licenses>
+  <license>
+   <name>BSD-3-Clause</name>
+   <url>https://opensource.org/licenses/BSD-3-Clause</url>
+  </license>
+ </licenses>
+ <developers>
+  <developer>
+   <name>Juraj Papp</name>
+   <email>jurajpapp7@gmail.com</email>
+  </developer>
+ </developers>
+ <scm>
+  <connection>scm:git:git://github.com/TehLeo/junion.git</connection>
+  <developerConnection>scm:git:ssh://github.com:TehLeo/junion.git</developerConnection>
+  <url>https://github.com/TehLeo/junion/tree/master</url>
+ </scm>
+
+ <distributionManagement>
+  <snapshotRepository>
+   <id>ossrh</id>
+   <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+  </snapshotRepository>
+  <repository>
+   <id>ossrh</id>
+   <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+  </repository>
+ </distributionManagement>
+
+ <properties>
+  <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+ </properties>
+
+ <dependencies>
+	<dependency>
+		<groupId>com.github.tehleo</groupId>
+		<artifactId>junion</artifactId>
+		<version>1.1.0</version>
+	</dependency>
+	<!-- https://mvnrepository.com/artifact/org.eclipse.jdt/org.eclipse.jdt.core -->
+	<dependency>
+		<groupId>org.eclipse.jdt</groupId>
+		<artifactId>org.eclipse.jdt.core</artifactId>
+		<version>3.13.102</version>
+	</dependency>
+	<!-- https://mvnrepository.com/artifact/org.eclipse.jdt/org.eclipse.jdt.core.manipulation -->
+	<dependency>
+		<groupId>org.eclipse.jdt</groupId>
+		<artifactId>org.eclipse.jdt.core.manipulation</artifactId>
+		<version>1.9.100</version>
+	</dependency>
+	<!-- https://mvnrepository.com/artifact/org.eclipse.jdt/org.eclipse.jdt.compiler.tool -->
+	<dependency>
+		<groupId>org.eclipse.jdt</groupId>
+		<artifactId>org.eclipse.jdt.compiler.tool</artifactId>
+		<version>1.2.101</version>
+	</dependency>
+	<!-- https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.core.contenttype -->
+	<dependency>
+		<groupId>org.eclipse.platform</groupId>
+		<artifactId>org.eclipse.core.contenttype</artifactId>
+		<version>3.6.0</version>
+	</dependency>
+	<!-- https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.core.jobs -->
+	<dependency>
+		<groupId>org.eclipse.platform</groupId>
+		<artifactId>org.eclipse.core.jobs</artifactId>
+		<version>3.9.3</version>
+	</dependency>
+	<!-- https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.core.resources -->
+	<dependency>
+		<groupId>org.eclipse.platform</groupId>
+		<artifactId>org.eclipse.core.resources</artifactId>
+		<version>3.12.0</version>
+	</dependency>
+	<!-- https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.core.runtime -->
+	<dependency>
+		<groupId>org.eclipse.platform</groupId>
+		<artifactId>org.eclipse.core.runtime</artifactId>
+		<version>3.13.0</version>
+	</dependency>
+	<!-- https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.equinox.common -->
+	<dependency>
+		<groupId>org.eclipse.platform</groupId>
+		<artifactId>org.eclipse.equinox.common</artifactId>
+		<version>3.9.0</version>
+	</dependency>
+	<!-- https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.equinox.preferences -->
+	<dependency>
+		<groupId>org.eclipse.platform</groupId>
+		<artifactId>org.eclipse.equinox.preferences</artifactId>
+		<version>3.7.0</version>
+	</dependency>
+	<!-- https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.osgi -->
+	<dependency>
+		<groupId>org.eclipse.platform</groupId>
+		<artifactId>org.eclipse.osgi</artifactId>
+		<version>3.12.100</version>
+	</dependency>
+	<!-- https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.text -->
+	<dependency>
+		<groupId>org.eclipse.platform</groupId>
+		<artifactId>org.eclipse.text</artifactId>
+		<version>3.6.100</version>
+	</dependency>
+ </dependencies>
+
+ <build>
+  <plugins>
+   <plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-source-plugin</artifactId>
+    <version>2.2.1</version>
+    <executions>
+     <execution>
+      <id>attach-sources</id>
+      <goals>
+       <goal>jar-no-fork</goal>
+      </goals>
+     </execution>
+    </executions>
+   </plugin>
+   <plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-javadoc-plugin</artifactId>
+    <version>2.9.1</version>
+    <executions>
+     <execution>
+      <id>attach-javadocs</id>
+      <goals>
+       <goal>jar</goal>
+      </goals>
+     </execution>
+    </executions>
+   </plugin>
+   <plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-gpg-plugin</artifactId>
+    <version>1.5</version>
+    <executions>
+     <execution>
+      <id>sign-artifacts</id>
+      <phase>verify</phase>
+      <goals>
+       <goal>sign</goal>
+      </goals>
+     </execution>
+    </executions>
+   </plugin>
+  </plugins>
+ </build>
+
+</project>
+
