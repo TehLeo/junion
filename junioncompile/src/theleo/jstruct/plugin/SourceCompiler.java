@@ -54,7 +54,7 @@ import theleo.jstruct.plugin.ecj.Translator;
  * @author Juraj Papp
  */
 public class SourceCompiler {
-	public static final String jstruct_version = "1.1.0";
+	public static final String jstruct_version = "1.1.1";
 
 	public static class Args {
 		

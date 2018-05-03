@@ -809,16 +809,46 @@ public class Translator extends ASTVisitor {
 							e = typeLiteral(node.arguments().get(0));
 							MethodFrame mf = getMethod();
 							NumberLiteral pos = (NumberLiteral)returnLong(0);
-
-							mf.add(e, pos);
-							
+												
 							InfixExpression op = ast.newInfixExpression();
 							op.setLeftOperand(name(STACK_BASE));
 							op.setOperator(InfixExpression.Operator.PLUS);
 							op.setRightOperand(pos);
 							op.setProperty(TYPEBIND_PROP, FieldType.LONG);
 							
-							replace(node, op);
+							if(e.hasJavaObjects()) {
+								NumberLiteral posObj = (NumberLiteral)returnLong(0);
+								
+								mf.add(e, pos, posObj);
+								
+								InfixExpression op2 = ast.newInfixExpression();
+								op2.setLeftOperand(name(STACK_BASE_OBJ));
+								op2.setOperator(InfixExpression.Operator.PLUS);
+								op2.setRightOperand(posObj);
+								op2.setProperty(TYPEBIND_PROP, FieldType.LONG);
+								
+								MethodInvocation mi = ast.newMethodInvocation();
+								mi.setExpression(name(MEM0));
+								mi.setName(name("allocHybOnStack"));							
+								mi.setProperty(TYPEBIND_PROP, FieldType.LONG);
+								List args = mi.arguments();
+								args.add(op);
+								args.add(op2);
+								args.add(name(STACK_BASE_HI));
+								for(int i = 0; i < e.objOffsets.length; i++) {
+									args.add(returnLong(e.objOffsets[i]));
+									args.add(returnLong(e.objCounts[i]));
+								}
+								
+								replace(node, mi);
+							}
+							else {
+								mf.add(e, pos);
+
+								
+
+								replace(node, op);
+							}
 							return false;
 					}
 				}
