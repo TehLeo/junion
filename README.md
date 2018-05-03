@@ -1,5 +1,6 @@
 (More Information available at this project's [website](https://tehleo.github.io/junion/))
 # Project JUnion
+[![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/JUnionChat/Lobby)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.tehleo/junion/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.tehleo/junion)
 
 **Delivers struct types to Java programming language.** 
