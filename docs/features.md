@@ -9,7 +9,7 @@ You can define a struct type by annotating it with @Struct  annotation.
 ```java
 @Struct
 public class Vec3 {
-	public float x,y,z;
+    public float x,y,z;
 }
 ```
 Struct Vec3 has a size of 12 bytes. You can double check this by running:
