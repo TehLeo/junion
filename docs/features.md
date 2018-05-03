@@ -235,5 +235,5 @@ If initialization is not desired, eg. you'd like to initialize the struct
 from a function call. For now this is possible as follow.
 This way is not safe, if you read the data before you initalize it.
 ```java
-Vec3 v = Mem0.stack(Vec3.class);
+Vec3 v = Mem0.stackRaw(Vec3.class);
 ```
