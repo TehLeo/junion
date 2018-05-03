@@ -54,10 +54,12 @@ import theleo.jstruct.plugin.ecj.Translator;
  * @author Juraj Papp
  */
 public class SourceCompiler {
-	public static final String jstruct_version = "1.1.1";
+	public static final String JUNION_VERSION = "1.1.1";
 
 	public static class Args {
-		
+		public static boolean systemExitOnSuccess = true;
+		public static boolean systemExitOnFail = true;
+		public static boolean throwOnFail = false;
 		public String unitname = null;
 		public String sourceVersion = null;
 		public String[] sourcepath = null;
@@ -74,6 +76,7 @@ public class SourceCompiler {
 				String str = args[i].trim();
 				
 				switch(str.toLowerCase()) {
+					
 					case "-unitname":
 						if(!hasNext) throw new IllegalArgumentException("Unit name not set");
 						unitname = trimQuotes(args[++i]);
@@ -103,7 +106,7 @@ public class SourceCompiler {
 						if(!hasNext) throw new IllegalArgumentException("Output directory not specified!");
 						outpath = trimQuotes(args[++i]);
 						break;
-					case "-LnoVMboothpath":
+					case "-lnovmboothpath":
 						includeVMBoothpath = false;
 						break;
 					case "-infile":
@@ -118,11 +121,20 @@ public class SourceCompiler {
 						String incr = args[++i];
 						sourcefiles = array(filter(fromQuotedList(incr), ".java"));
 						break;
-					case "-ignoreAstError":
+					case "-ignoreasterror":
 						ignoreAstError = true;
 						break;
 					case "-debug":
 						Log.enabled = true;
+						break;
+					case "-nosystemexitonsuccess":
+						systemExitOnSuccess = false;
+						break;
+					case "-nosystemexitonfail":
+						systemExitOnFail = false;
+						break;
+					case "-throwonfail":
+						throwOnFail = true;
 						break;
 					default:
 						System.err.println("Unknown argument: " + str);
@@ -200,10 +212,10 @@ public class SourceCompiler {
 	}
 	static int success = 0;
 	public static void main(String[] rawArgs) {
-		System.err.println("junion v" + jstruct_version + ':' + Arrays.toString(rawArgs));
-		
+		System.err.println("junion v" + JUNION_VERSION + ':' + Arrays.toString(rawArgs));
+		Args args;
 		try {
-			Args args = new Args(rawArgs);
+			args = new Args(rawArgs);
 			
 			File outpathFile = new File(args.outpath);
 			if(!outpathFile.exists()) { outpathFile.mkdir(); }
@@ -303,7 +315,7 @@ public class SourceCompiler {
 								}
 							}
 						}
-						String header = "/*AUTO-GENERATED DO NOT EDIT (jstruct"+jstruct_version+")*/";
+						String header = "/*AUTO-GENERATED DO NOT EDIT (jstruct"+JUNION_VERSION+")*/";
 						try (PrintWriter out = new PrintWriter(output)) {
 							out.print(header);
 							out.println(result);
@@ -327,8 +339,13 @@ public class SourceCompiler {
 			ex.printStackTrace();
 			success = 1;
 		}
-		
-		System.exit(success);
+		if(success == 0) {
+			if(Args.systemExitOnSuccess) System.exit(success);
+		}
+		else {
+			if(Args.systemExitOnFail) System.exit(success);
+			if(Args.throwOnFail) throw new IllegalArgumentException("Build Failed " + success);
+		}
 	}
 	public static void printProblem(IProblem p) {
 		if(p.isError()) {
