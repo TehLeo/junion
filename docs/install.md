@@ -4,7 +4,8 @@
 
 * as source translator: junionc
 * as a compiler plugin for javac 1.8
-* as Eclipse plugin
+* as Eclipse plugin, in Netbeans
+* as part of Ant, Maven, Gradle build
 
 #### Source Translator
 
@@ -46,14 +47,125 @@ To use JUnion within Netbean IDE, follow the steps:
 1. Add all the libraries to the project.
 2. **Project Properties -&gt; Build -&gt; Compiling -&gt; Disable Compile on Save** and enter "-Xplugin\:junion" in **Additional Compiler Options** 
 
-#### Ant support and other build scripts
+#### Gradle
 
-You can use the source compiler to compile your sources.
-
+Gradle build file:
 ```
-java -jar junionc1.0.jar -classpath lib/junion1.0.jar -version 1.8 -sourcepath src -outputpath out
+apply plugin: 'java'
+
+repositories {
+    mavenCentral()
+}
+configurations {
+    junion
+}
+dependencies {
+    compile 'com.github.tehleo:junion:1.1.1'
+    junion 'com.github.tehleo:junionc:1.1.1'
+}
+task junionTask(type: JavaExec) {
+    classpath configurations.junion
+    classpath += sourceSets.main.runtimeClasspath
+    main = 'theleo.jstruct.plugin.SourceCompiler'
+    args = ['-classpath', sourceSets.main.runtimeClasspath.getAsPath(),
+            '-version', '1.8',
+            '-sourcepath', files(sourceSets.main.java.srcDirs).getAsPath(),
+            '-outputpath', file('build/generated').getPath()
+    ]
+   	sourceSets.main.java.srcDirs = ['build/generated']
+}
+
+build.dependsOn junionTask
 ```
 
+#### Maven
 
+Maven build file:
+```xml
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<modelVersion>4.0.0</modelVersion>
+
+	<groupId>tehleo.maventest</groupId>
+	<artifactId>test</artifactId>
+	<version>1.0-SNAPSHOT</version>
+	<packaging>jar</packaging>
+
+	<properties>
+		<maven.compiler.source>1.8</maven.compiler.source>
+		<maven.compiler.target>1.8</maven.compiler.target>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	 </properties>
+
+ 	 <name>Hello Structs</name>
+ 
+	<dependencies>
+		<dependency>
+			<groupId>com.github.tehleo</groupId>
+			<artifactId>junion</artifactId>					
+			<version>1.1.1</version>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<sourceDirectory>${basedir}/target/generated-sources</sourceDirectory>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<version>3.1.0</version>
+				<executions>
+					<execution>
+						<id>build-classpath</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>build-classpath</goal>
+						</goals>
+						<configuration>
+							<outputProperty>classpath-string</outputProperty>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
+			<groupId>org.codehaus.mojo</groupId>
+			<artifactId>exec-maven-plugin</artifactId>
+			<version>1.6.0</version>
+			<executions>
+				<execution>
+				<phase>generate-sources</phase>
+				<goals>
+					<goal>java</goal>
+				</goals>
+				</execution>
+			</executions>
+			<configuration>
+				<includePluginDependencies>true</includePluginDependencies>
+				<mainClass>theleo.jstruct.plugin.SourceCompiler</mainClass>
+				<sourceRoot>${basedir}/target/generated-sources</sourceRoot>
+				<arguments>
+					<argument>-noSystemExitOnSuccess</argument>
+					<argument>-classpath</argument>
+					<argument>${classpath-string}</argument>
+					<argument>-version</argument>
+					<argument>1.8</argument>
+					<argument>-sourcepath</argument>
+					<argument>${basedir}/src/main</argument>
+					<argument>-outputpath</argument>
+					<argument>${basedir}/target/generated-sources</argument>
+				</arguments>
+			</configuration>
+			<dependencies>
+				<dependency>
+				<groupId>com.github.tehleo</groupId>
+				<artifactId>junionc</artifactId>
+				<version>1.1.1</version>
+				</dependency>
+			</dependencies>
+			</plugin>
+		</plugins>
+	</build>
+</project>
+```
 
 
