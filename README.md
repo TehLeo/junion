@@ -3,6 +3,8 @@
 [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/JUnionChat/Lobby)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.tehleo/junion/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.tehleo/junion)
 
+![Class Struct Diagram](docs/drawing.png)
+
 **Delivers struct types to Java programming language.** 
 
 When creating arrays of int, we have two main options:
