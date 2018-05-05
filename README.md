@@ -78,7 +78,7 @@ and usage/IDE integration [guide here.](https://tehleo.github.io/junion/install.
 
 ## Support & Donations
 
-Would you like to support JUnion? You can report bugs or request for new features at: https://github.com/TehLeo/junion/issues
+Would you like to support JUnion? You can report bugs or request for new features [here](https://github.com/TehLeo/junion/issues) or [chat here](https://gitter.im/JUnionChat/Lobby)
 
 Or would you like to make a donation?
 You can do so [via PayPap](https://www.paypal.me/JurajPapp)
