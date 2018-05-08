@@ -12,6 +12,7 @@
 * automatic memory alignment, optionally allow specifying custom memory layout
 * performance similar to primitive types
 
+**Memory Layout**
 Example:
 ```java
 @Struct
@@ -68,5 +69,56 @@ its layout is as follows:
 ```
 Thus, StrExamples manages to place data in such a way that that the size of StrExample is 16 bytes, and its end padding is 0.
 
+**Syntax & Struct types**
 
+Defining a struct type is similar to defining a class. Struct is distinguished by @Struct annotation. 
 
+Struct type can contain:
+ * primitive fields
+ * struct type fields
+ * references to struct types
+ * object fields
+ * static fields
+ * static methods
+ * (Not implemented yet)constructors
+ * (Not implemented yet)non-static methods
+
+```java
+@Struct 
+public class StructExample {
+    public static long id; //just like for objects, static memebers are not allocated with struct
+    
+    //public StructExample itself; <- not allowed, struct cannot contain itself
+    @Reference
+    public StructExample itself; //<- but can contain reference to itself
+
+    boolean bool; byte byt; char ch; int i; long l;
+    public float flt;
+    public double dbl;
+    
+    public Object o; // <- java Object reference
+    public String s; // <- java Object reference
+    public float[] arr; // <- java Object reference
+}
+```
+Due to the design principle features are optional, structs are divided into two categories.
+
+Structs with no java objects references, and structs with java object references (
+these will be reffered to as hybrid structs). Thus 'StructExample' is a hybrid struct
+as it contains java Object references.
+
+```java
+@Struct 
+public class ExHyb {
+    public StructExample value;
+}
+@Struct 
+public class ExHyb2 {
+    @Reference
+    public StructExample value;
+}
+```
+Similarly, structs containg hybrid structs are considered hybrid as well.
+Thus 'ExHyb' is a hybrid struct, while 'ExHyb2' is not because it contains a reference only.
+
+The distinction between normal/hybrid structs might be pointed out when talking about a specific feature.
