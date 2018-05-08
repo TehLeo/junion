@@ -122,3 +122,70 @@ Similarly, structs containg hybrid structs are considered hybrid as well.
 Thus 'ExHyb' is a hybrid struct, while 'ExHyb2' is not because it contains a reference only.
 
 The distinction between normal/hybrid structs might be pointed out when talking about a specific feature.
+
+**Array Allocation**
+
+Array allocation follows Java syntax. Allocated struct objects have zeroed memory. No constructors calls are required. Constructors with struct types are not supported in current version. 
+
+It is good to remember that stack allocated objects do not necessairly live till the end of the method. They can be kept alive that long by using their reference at the end of method:
+
+```java
+
+void test() {
+    Vec3[] arr = new Vec3[10]; //<- allocates memory, freed if arr is gced
+    arr[5].x = 10;
+    //arr[-1].x = 10; <- would throw IndexOutOfBounds
+    //arr[10].x = 10; <- would throw IndexOutOfBounds
+    
+    Vec3 v5 = arr[5]; // <- last reference to 'arr'
+    for(int i = 0; i < 1000; i++) {
+        superLongTask(v5);
+    }
+    
+    Mem.tag(arr); //<- if you comment this line, 'arr' might be gced after line 'Vec3 v5 = arr[5];'
+    //Mem.free(arr); <- alternatively you can free the memory instead of waiting for gc to do the job
+}
+```
+
+**References**
+
+Local references to structs are non-nullable. This is done for performance reason, so that no null pointer exception checks have to be performed.
+
+Field references are nullable, and null-check is performed for them. Instead of throwing NullPointerException, a new exception
+NullPointerDereference was created to distinguish between Java null pointer and Struct null pointer, which should facilitate debugging.
+
+```java
+Vec3 fieldRef;
+void test() {
+    Vec3[] arr = new Vec3[10];
+    
+    Vec3 localRef = arr[5];
+    localRef.x = 10; 
+    //localRef = null; // <- compile error
+
+    fieldRef = arr[5];
+    fieldRef.x = 10; // <- null check performed (another thread might have set fieldRef to null)
+    fieldRef = null;
+    
+    //fieldRef.x = 10; <- throws NullPointerDereference
+    //localRef = fieldRef; <- throws NullPointerDereference
+    
+    //if(fieldRef == null) {}  <- throws NullPointerDereference
+    if(Mem.isNull(fieldRef)) {  } //use this instead
+
+    Mem.tag(arr);
+}
+```
+Struct types have no runtime type. References are implemented with 'long' type. This is useful to remember
+when creating overloaded methods that take struct type arguments/arrays.
+
+```java
+void test1(long a);
+void test1(Vec3 a);  //<- compile error, test1(long) already defined
+```
+Similarly:
+
+```java
+void test1(Vec3 a);
+void test1(StrExample a);  //<- compile error, test1(long) already defined
+```
