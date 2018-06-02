@@ -84,3 +84,7 @@ Would you like to support JUnion? You can report bugs or request for new feature
 
 Or would you like to make a donation?
 You can do so [via PayPap](https://www.paypal.me/JurajPapp)
+
+## News & Info
+
+New features, expanded wiki with detailed information coming this July.
