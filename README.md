@@ -87,4 +87,4 @@ You can do so [via PayPap](https://www.paypal.me/JurajPapp)
 
 ## News & Info
 
-New features, expanded wiki with detailed information coming this July.
+Wiki has been created and can be accessed [here] (https://tehleo.github.io/junion/wiki/index.html)
