@@ -16,3 +16,5 @@ The project contains a runtime library and a compile time library.
 * features comply with Java syntax
 * features are optional (eg.: lazy initialization etc)
  
+Contents:
+* [Struct Types](structs.md)
