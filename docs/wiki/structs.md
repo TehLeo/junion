@@ -2,17 +2,18 @@
 
 **Design**
 
-* Ability to define struct types with similar syntax to a class.
-* Struct types can not inherit or be inherited from.
-* ability to use constructors
-* ability to use non-static methods
-* struct & field memory alignment
-* no runtime type information
-* no memory overhead for data storage except for alignment
-* automatic memory alignment, optionally allow specifying custom memory layout
-* performance similar to primitive types
+* Ability to define struct types with similar syntax to a class. [Implemented]
+* Struct types can not inherit or be inherited from. [Not enforced.]
+* ability to use constructors [To be implemented.]
+* ability to use non-static methods [To be implemented.]
+* struct & field memory alignment [Implemented.]
+* no runtime type information [Implemented.]
+* no memory overhead for data storage except for alignment [Implemented for structs without Java objects.]
+* automatic memory alignment, optionally allow specifying custom memory layout [Implemented.]
+* performance similar to primitive types [Implemented.]
 
 **Memory Layout**
+
 Example:
 ```java
 @Struct
