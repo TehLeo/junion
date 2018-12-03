@@ -124,7 +124,7 @@ public class CompPlugin extends CompilationParticipant {
 	static String FILE_DESC = 
 	"JStruct property file\n"+
 	GEN_FOLDER+"= name of folder to generate sources to\n"+
-	COMPILE_LIBS+"= list of ':' separated compile time class path libraries ";
+	COMPILE_LIBS+"= list of ';'(Windows)/':'(UNIX) separated compile time class path libraries ";
 	
 	static char[][] UNINIT_PATTERNS;
 	static Field fullExclusionPatternChars;
@@ -371,7 +371,7 @@ public class CompPlugin extends CompilationParticipant {
 					IClasspathEntry source = sources.get(i);
 					sb.append(workspace);
 					sb.append(source.getPath().toOSString());
-					if(i+1 < sources.size()) sb.append(':');
+					if(i+1 < sources.size()) sb.append(File.pathSeparatorChar);
 				}
 				String sourcesString = sb.toString();
 				
@@ -379,7 +379,7 @@ public class CompPlugin extends CompilationParticipant {
 				for(int i = 0; i < libs.size(); i++) {
 					IClasspathEntry lib = libs.get(i);
 					sb.append(lib.getPath().toOSString());
-					if(i+1 < libs.size()) sb.append(':');
+					if(i+1 < libs.size()) sb.append(File.pathSeparatorChar);
 				}
 				String libsString = sb.toString();
 				
@@ -389,10 +389,10 @@ public class CompPlugin extends CompilationParticipant {
 					sb.append(workspace);
 					sb.append(proj.getPath().toOSString());
 					sb.append(SEP).append("bin");
-					if(i+1 < projs.size()) sb.append(':');
+					if(i+1 < projs.size()) sb.append(File.pathSeparatorChar);
 				}
 				String projsString = sb.toString();
-				if(!libsString.isEmpty()) libsString = libsString + ':';
+				if(!libsString.isEmpty()) libsString = libsString + File.pathSeparatorChar;
 				libsString += projsString;
 				
 				String genFolderPath = workspace+genFolderPathRelative;
@@ -419,7 +419,7 @@ public class CompPlugin extends CompilationParticipant {
 				
 				String javaClassPath = libsString;
 				javaClassPath += compileOnlyLibs;
-				if(!compileOnlyLibs.isEmpty()) javaClassPath = javaClassPath + ':';
+				if(!compileOnlyLibs.isEmpty()) javaClassPath = javaClassPath + File.pathSeparatorChar;
 				javaClassPath += libsPath + SEP + '*';
 			  
 			    String[] args = new String[] {
