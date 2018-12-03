@@ -9,7 +9,7 @@ You can define a struct type by annotating it with @Struct  annotation.
 ```java
 @Struct
 public class Vec3 {
-	public float x,y,z;
+    public float x,y,z;
 }
 ```
 Struct Vec3 has a size of 12 bytes. You can double check this by running:
@@ -219,4 +219,21 @@ for(Vec3 v : list) {
 5.0
 1.0
 7.0
+```
+#### Stack Allocation
+
+There are two ways to allocate structs on stack.
+The first safe way requires initialization of all struct variables
+with the following syntax.
+
+```java
+Vec3 v = Mem.stack(Vec3.class); {
+    v.x = 1; v.y = 2; v.z = 3;
+}
+```
+If initialization is not desired, eg. you'd like to initialize the struct
+from a function call. For now this is possible as follow.
+This way is not safe, if you read the data before you initalize it.
+```java
+Vec3 v = Mem0.stackRaw(Vec3.class);
 ```

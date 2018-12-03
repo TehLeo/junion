@@ -1,5 +1,7 @@
 ## Project JUnion
 
+![Class Struct Diagram](drawing.png)
+
 **Delivers struct types to Java programming language.** 
 
 When creating arrays of int, we have two main options:

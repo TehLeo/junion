@@ -1,5 +1,9 @@
 (More Information available at this project's [website](https://tehleo.github.io/junion/))
 # Project JUnion
+[![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/JUnionChat/Lobby)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.tehleo/junion/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.tehleo/junion)
+
+![Class Struct Diagram](docs/drawing.png)
 
 **Delivers struct types to Java programming language.** 
 
@@ -76,7 +80,11 @@ and usage/IDE integration [guide here.](https://tehleo.github.io/junion/install.
 
 ## Support & Donations
 
-Would you like to support JUnion? You can report bugs or request for new features at: https://github.com/TehLeo/junion/issues
+Would you like to support JUnion? You can report bugs or request for new features [here](https://github.com/TehLeo/junion/issues) or [chat here](https://gitter.im/JUnionChat/Lobby)
 
 Or would you like to make a donation?
 You can do so [via PayPap](https://www.paypal.me/JurajPapp)
+
+## News & Info
+
+Wiki has been created and can be accessed [here] (https://tehleo.github.io/junion/wiki/index.html)
