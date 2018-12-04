@@ -47,7 +47,7 @@ public class Vec3 {
 
 ```java
 //Create a new struct array
-Vec3[] arr = Vec3[10];
+Vec3[] arr = new Vec3[10];
 arr[5].x = 10;
 Vec3 v = arr[5];
 ...
