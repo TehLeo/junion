@@ -29,6 +29,7 @@ package theleo.jstruct.plugin.ecl;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
+import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.IWorkspaceRoot;
@@ -41,6 +42,7 @@ import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.jdt.apt.core.util.AptConfig;
 import org.eclipse.jdt.core.IClasspathEntry;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IJavaProject;
@@ -100,8 +102,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.annotation.Resources;
@@ -125,7 +129,7 @@ public class CompPlugin extends CompilationParticipant {
 	static String COMPILE_LIBS = "compileLibs";
 	static String SHOW_ERROR = "showerror";
 	static String FILE_DESC = 
-	"JStruct property file (1.0.2)\n"+
+	"JStruct property file (1.0.3)\n"+
 	GEN_FOLDER+"= name of folder to generate sources to\n"+
 	COMPILE_LIBS+"= list of ';'(Windows)/':'(UNIX) separated compile time class path libraries ";
 	
@@ -372,31 +376,35 @@ public class CompPlugin extends CompilationParticipant {
 				StringBuilder sb = new StringBuilder();
 				for(int i = 0; i < sources.size(); i++) {
 					IClasspathEntry source = sources.get(i);
-					sb.append(workspace);
-					sb.append(source.getPath().toOSString());
+//					sb.append(workspace);
+					sb.append(toAbsolutePath(source, root));
 					if(i+1 < sources.size()) sb.append(File.pathSeparatorChar);
 				}
 				String sourcesString = sb.toString();
 				
-				sb = new StringBuilder();
-				for(int i = 0; i < libs.size(); i++) {
-					IClasspathEntry lib = libs.get(i);
-					sb.append(lib.getPath().toOSString());
-					if(i+1 < libs.size()) sb.append(File.pathSeparatorChar);
-				}
-				String libsString = sb.toString();
+				Map<String, String> procOps = AptConfig.getProcessorOptions(project);
 				
-				sb = new StringBuilder();
-				for(int i = 0; i < projs.size(); i++) {
-					IClasspathEntry proj = projs.get(i);
-					sb.append(workspace);
-					sb.append(proj.getPath().toOSString());
-					sb.append(SEP).append("bin");
-					if(i+1 < projs.size()) sb.append(File.pathSeparatorChar);
-				}
-				String projsString = sb.toString();
-				if(!libsString.isEmpty()) libsString = libsString + File.pathSeparatorChar;
-				libsString += projsString;
+				String libsString = procOps.get("-classpath");
+				
+//				sb = new StringBuilder();
+//				for(int i = 0; i < libs.size(); i++) {
+//					IClasspathEntry lib = libs.get(i);
+//					sb.append(toAbsolutePath(lib, root));
+//					if(i+1 < libs.size()) sb.append(File.pathSeparatorChar);
+//				}
+//				libsString = sb.toString();
+//				
+//				sb = new StringBuilder();
+//				for(int i = 0; i < projs.size(); i++) {
+//					IClasspathEntry proj = projs.get(i);
+//					sb.append(workspace);
+//					sb.append(toAbsolutePath(proj, root));
+//					sb.append(SEP).append("bin");
+//					if(i+1 < projs.size()) sb.append(File.pathSeparatorChar);
+//				}
+//				String projsString = sb.toString();
+//				if(!projsString.isEmpty()) libsString = libsString + File.pathSeparatorChar;
+//				libsString += projsString;
 				
 				String genFolderPath = workspace+genFolderPathRelative;
 				String javaVersion = project.getOption(JavaCore.COMPILER_SOURCE, true);
@@ -421,21 +429,31 @@ public class CompPlugin extends CompilationParticipant {
 				String compileOnlyLibs = data.properties.getProperty(COMPILE_LIBS, "").trim();
 				
 				String javaClassPath = libsString;
+				if(!javaClassPath.isEmpty()) javaClassPath = javaClassPath + File.pathSeparatorChar;
 				javaClassPath += compileOnlyLibs;
 				if(!compileOnlyLibs.isEmpty()) javaClassPath = javaClassPath + File.pathSeparatorChar;
 				javaClassPath += libsPath + SEP + '*';
-			  
-			    String[] args = new String[] {
-			    		javaPath, "-classpath", javaClassPath, "theleo.jstruct.plugin.SourceCompiler",
-						"-classpath", libsString,
-						"-sourcepath", sourcesString,
-						"-outputpath", genFolderPath,
-						"-source", javaVersion
-				};
-			    log("Args " + Arrays.toString(args));
+				
+				boolean noVMboothpath = true;
+				
+				ArrayList<String> argList = new ArrayList<>();
+				argList.add(javaPath);
+				argList.add("-classpath");	argList.add(javaClassPath);
+				argList.add("theleo.jstruct.plugin.SourceCompiler");
+				
+				argList.add("-classpath"); 	argList.add(libsString);
+				argList.add("-sourcepath");	argList.add(sourcesString);
+				argList.add("-outputpath");	argList.add(genFolderPath);
+				argList.add("-source"); argList.add(javaVersion);
+				
+				if(noVMboothpath) {
+					argList.add("-lnovmboothpath");
+				}
+				
+			    log("Args " + argList);
 			    long start = System.currentTimeMillis();
 
-			    ProcessBuilder proc = new ProcessBuilder(args);
+			    ProcessBuilder proc = new ProcessBuilder(argList);
 			    proc.redirectErrorStream(true);
 			    Process p = proc.start();
 			    
@@ -557,6 +575,82 @@ public class CompPlugin extends CompilationParticipant {
 		}		
 		
 		return false;
+	}
+	
+//	public void getClassPath(IClasspathEntry entry,
+//			IWorkspaceRoot root,
+//    		IJavaProject project,
+//    		LinkedHashSet<IJavaProject> projects,
+//    		LinkedHashSet<String> classpath) {
+//		
+//		if(entry.getEntryKind() == IClasspathEntry.CPE_PROJECT)
+//			getProjectClassPath(root, project, projects, classpath);
+//		else classpath.add(toAbsolutePath(entry, root));
+//	}
+//	public void getProjectClassPath(IWorkspaceRoot root,
+//    		IJavaProject project,
+//    		LinkedHashSet<IJavaProject> projects,
+//    		LinkedHashSet<String> classpath) {
+//		
+//		if(!projects.add(project)) return;
+//		
+//		try {
+//			IPath bin = project.getOutputLocation();
+//			
+//			classpath.add(toAbsolutePath(bin, root));
+//			IClasspathEntry[] entries = project.getResolvedClasspath(true);
+//			
+//			for(IClasspathEntry entry : entries) {
+//				if(entry.getEntryKind() == IClasspathEntry.CPE_PROJECT) {
+//					IPath projectPath2 = entry.getPath();
+//					IProject project2 = root.getProject(projectPath2.segment(0));
+//					IJavaProject javaProject2 = JavaCore.create(project2);
+//					
+//					if(javaProject2 != null) getProjectClassPath(root, javaProject2, projects, classpath);
+//				}
+//				else classpath.add(toAbsolutePath(entry, root));
+//			}
+//			
+//		}
+//		catch(Exception e) {
+//			log("ERROR: could not getProjectPath");
+//			e.printStackTrace();
+//		}
+//		
+//	}
+//	public static String toAbsolutePath(IPath path, IWorkspaceRoot root) {
+//		IResource res = root.findMember(path);
+//		if(res == null) return path.toOSString();
+//		return res.getLocation().toOSString();
+//	}
+	public static String toAbsolutePath(IClasspathEntry entry, IWorkspaceRoot root) {
+		int kind = entry.getEntryKind();
+		if (kind == IClasspathEntry.CPE_LIBRARY) {
+			IPath cpPath = entry.getPath();
+			
+			IResource res = root.findMember(cpPath);
+			
+			// If res is null, the path is absolute (it's an external jar)
+			if (res == null) {
+				return cpPath.toOSString();
+			}
+			else {
+				// It's relative, convert to absolute
+				return res.getLocation().toOSString();
+			}
+		}
+		else if (kind == IClasspathEntry.CPE_SOURCE) {
+			IResource res = root.findMember(entry.getPath());
+			if (res == null) {
+				return entry.getPath().toOSString();
+			}
+			IPath loc = res.getLocation();
+			if (loc == null) {
+				return entry.getPath().toOSString();
+			}
+			return res.getLocation().toOSString();
+		}
+		return entry.getPath().toOSString();
 	}
 	static {
 		try {
