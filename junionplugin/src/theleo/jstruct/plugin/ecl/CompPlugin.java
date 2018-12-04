@@ -90,8 +90,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
+import java.io.StringReader;
 import java.lang.reflect.Field;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -100,6 +102,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 import javax.annotation.Resources;
 
@@ -122,7 +125,7 @@ public class CompPlugin extends CompilationParticipant {
 	static String COMPILE_LIBS = "compileLibs";
 	static String SHOW_ERROR = "showerror";
 	static String FILE_DESC = 
-	"JStruct property file\n"+
+	"JStruct property file (1.0.2)\n"+
 	GEN_FOLDER+"= name of folder to generate sources to\n"+
 	COMPILE_LIBS+"= list of ';'(Windows)/':'(UNIX) separated compile time class path libraries ";
 	
@@ -500,7 +503,16 @@ public class CompPlugin extends CompilationParticipant {
 							data.lastModification = modStamp;
 							data.properties.clear();
 							try(InputStream io = f.getContents(true)) {
-								data.properties.load(io);
+								//property file expects paths in form
+								//eg c:/abc/def...
+								//or c:\\abc\\def...
+								//replace all occurences of single \ with / (os-indepenent), thus allow
+								//   c:\abc\def...
+								
+								String fileContents = new BufferedReader(new InputStreamReader(io))
+								  .lines().map((s)->s.replaceAll("(?<!\\\\)\\\\(?!\\\\)", "/")).collect(Collectors.joining("\n"));;
+								 data.properties.load(new StringReader(fileContents));
+								 //data.properties.load(io);
 							} catch (Exception e) {
 								e.printStackTrace();
 							}
