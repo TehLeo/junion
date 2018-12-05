@@ -88,4 +88,5 @@ You can do so [via PayPap](https://www.paypal.me/JurajPapp)
 ## News & Info
 
 Roadmap to JUnion 1.2.1 has been announced [here] (https://github.com/TehLeo/junion/issues/3) 
+
 Wiki has been created and can be accessed [here] (https://tehleo.github.io/junion/wiki/index.html)
