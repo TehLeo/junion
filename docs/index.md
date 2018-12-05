@@ -52,7 +52,7 @@ Vec3 v = arr[5];
 ByteBuffer a = ByteBuffer.allocateDirect(10*Mem.sizeOf(Vec3.class))
    .order(ByteOrder.nativeOrder());
 //Modify Direct Native Bytebuffer as it were a struct
-Vec3 arr = Mem.wrap(a);
+Vec3[] arr = Mem.wrap(a);
 arr[5].x = 10;
 ...
 ```
