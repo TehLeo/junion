@@ -55,7 +55,7 @@ Vec3 v = arr[5];
 ByteBuffer a = ByteBuffer.allocateDirect(10*Mem.sizeOf(Vec3.class))
    .order(ByteOrder.nativeOrder());
 //Modify Direct Native Bytebuffer as it were a struct
-Vec3 arr = Mem.wrap(a);
+Vec3[] arr = Mem.wrap(a);
 arr[5].x = 10;
 ...
 ```
@@ -87,4 +87,5 @@ You can do so [via PayPap](https://www.paypal.me/JurajPapp)
 
 ## News & Info
 
+Roadmap to JUnion 1.2.1 has been announced [here] (https://github.com/TehLeo/junion/issues/3) 
 Wiki has been created and can be accessed [here] (https://tehleo.github.io/junion/wiki/index.html)
