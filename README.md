@@ -1,4 +1,5 @@
 (More Information available at this project's [website](https://tehleo.github.io/junion/))
+(Current version [1.2.1 (pre-release)](https://github.com/TehLeo/junion/releases))
 # Project JUnion
 [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/JUnionChat/Lobby)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.tehleo/junion/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.tehleo/junion)
