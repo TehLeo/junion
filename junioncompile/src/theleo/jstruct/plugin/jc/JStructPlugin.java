@@ -48,16 +48,21 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.CharBuffer;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.processing.Processor;
 import javax.lang.model.element.NestingKind;
 import javax.tools.JavaFileObject;
+import javax.tools.ToolProvider;
 import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.FileASTRequestor;
@@ -100,22 +105,57 @@ public class JStructPlugin implements Plugin {
 		}
 		
 		try {
+			BasicJavacTask b = (BasicJavacTask)task;
+			Context context = b.getContext();
+			
+			Log.err("Class path " + System.getProperty("java.class.path"));
 			Log.err("ARGS " + Arrays.toString(args));
 			Log.err("CLS : " + getClass().getClassLoader().getClass());
 			
 			ClassLoader cl = getClass().getClassLoader();
 			URL[] currentClassPath = ((URLClassLoader) cl).getURLs();
-			String[] classPathStrings = Arrays.stream(currentClassPath).map(url -> {
-				try {
-					return Paths.get(url.toURI()).toAbsolutePath().toString();
-				} catch (URISyntaxException e) {
-					throw new RuntimeException(e);
-				}
-			}).toArray(String[]::new);
-			Log.err(Arrays.asList(classPathStrings));
-			classPaths = classPathStrings;
 			
-			Context context = ((BasicJavacTask) task).getContext();
+			ArrayList<String> classPathList = new ArrayList<>();
+			
+			//Include the java class path lib
+			Path javaLib = Paths.get(System.getProperty("java.home"), "lib").toAbsolutePath();
+			Log.err("Java lib: " + javaLib);
+			//Unfortunately wildcard("lib/*") doesn't seem to work
+			try (DirectoryStream<Path> stream = Files.newDirectoryStream(javaLib, "*.jar")) {
+				Iterator<Path> iter = stream.iterator();
+				while(iter.hasNext()) {
+					String lib = iter.next().toAbsolutePath().toString();
+					Log.err("Lib " + lib);
+					classPathList.add(lib);
+				}
+			}	
+			Path javaLibExt = Paths.get(System.getProperty("java.home"), "lib", "ext").toAbsolutePath();
+			Log.err("Java libExt: " + javaLibExt);
+			try (DirectoryStream<Path> stream = Files.newDirectoryStream(javaLibExt, "*.jar")) {
+				Iterator<Path> iter = stream.iterator();
+				while(iter.hasNext()) {
+					String lib = iter.next().toAbsolutePath().toString();
+					Log.err("Lib " + lib);
+					classPathList.add(lib);
+				}
+			}	
+			
+//			classPathList.add(javaLib);
+			for(URL url : currentClassPath) 
+				classPathList.add(Paths.get(url.toURI()).toAbsolutePath().toString());
+			classPaths = classPathList.toArray(new String[classPathList.size()]);
+			
+//			String[] classPathStrings = Arrays.stream(currentClassPath).map(url -> {
+//				try {
+//					return Paths.get(url.toURI()).toAbsolutePath().toString();
+//				} catch (URISyntaxException e) {
+//					throw new RuntimeException(e);
+//				}
+//			}).toArray(String[]::new);
+//			Log.err(Arrays.asList(classPathStrings));
+//			classPaths = classPathStrings;
+			
+			
 //			sourceVersion = Source.instance(context).name;
 			wrapCompiler(context);
 			
@@ -190,9 +230,16 @@ public class JStructPlugin implements Plugin {
 			Log.err("Source " + options.get(Option.SOURCE));
 			Log.err("D " + options.get(Option.D));
 			Log.err("CP " + options.get(Option.CP));
+			Log.err("BOOTCLASSPATH " + options.get(Option.BOOTCLASSPATH));
+			Log.err("XBOOTCLASSPATH " + options.get(Option.XBOOTCLASSPATH));
+			Log.err("XBOOTCLASSPATH_PREPEND " + options.get(Option.XBOOTCLASSPATH_PREPEND));
+			Log.err("XBOOTCLASSPATH_APPEND " + options.get(Option.XBOOTCLASSPATH_APPEND));
 			Log.err("CLASSPATH " + options.get(Option.CLASSPATH));
 			Log.err("PROCPATH " + options.get(Option.PROCESSORPATH));
 			Log.err("VERSION " + options.get(Option.VERSION));
+			
+//			for(String o : options.keySet())
+//				Log.err("Ops " + o + ", " + options.get(o));
 			
 			HashSet<String> sourcePathMap = new HashSet<>();
 			
@@ -258,7 +305,7 @@ public class JStructPlugin implements Plugin {
 				
 				Log.err("Source Version " + sourceVersion);
 				ASTParser parser = SourceCompiler.createParser(sourceVersion);
-				parser.setEnvironment(classPaths, sourcePaths, null, true);
+				parser.setEnvironment(classPaths, sourcePaths, null, false);
 				
 				
 				

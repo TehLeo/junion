@@ -214,7 +214,7 @@ public class StructCache {
 	}
 	public static class Entry {
 		public boolean isStruct;
-		public String binaryName;
+		public String binaryName, qualifiedName;
 		
 		public int structSize;
 		public int[] objOffsets;
@@ -239,6 +239,7 @@ public class StructCache {
 		
 		public void initialize(ITypeBinding ib) {
 			this.binaryName = ib.getBinaryName();
+			this.qualifiedName = ib.getQualifiedName();
 			Class cls = null;
 			boolean canReorder = true;
 //			if(ib.isFromSource()) {

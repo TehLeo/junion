@@ -26,12 +26,14 @@
  */
 package theleo.jstruct.plugin.ecj;
 
+import com.sun.source.tree.MethodInvocationTree;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import org.eclipse.jdt.core.dom.*;
+import theleo.jstruct.plugin.Log;
 import theleo.jstruct.plugin.ecj.StructCache.*;
 import static theleo.jstruct.plugin.ecj.StructCache.padding;
 
@@ -41,6 +43,7 @@ import static theleo.jstruct.plugin.ecj.StructCache.padding;
  */
 public class Translator extends ASTVisitor {
 	public static final String theleo = "theleo", jstruct = "jstruct", hidden = "hidden";
+	public static final String HYB_CLS_OFFSETS = "$theleo_structoffsets$";
 	public static final String STACK_OBJ = "$theleo_stack$";
 	public static final String STACK_BASE = "$theleo_stackBase$";
 	public static final String STACK_BASE_OBJ = "$theleo_stackBaseObj$";
@@ -71,18 +74,20 @@ public class Translator extends ASTVisitor {
 			return true;
 		}
 	}
-	public class FieldTranslator extends ASTVisitor {
-		@Override
-		public boolean visit(SimpleType node) {
-			Entry e = entry(node);
-			if(e != null) {
-				PrimitiveType type = ast.newPrimitiveType(PrimitiveType.LONG);
-				replace(node, type);
-				return false;
-			}
-			return true;
-		}
-	}
+//	public class FieldTranslator extends ASTVisitor {
+//		@Override
+//		public boolean visit(SimpleType node) {
+//			return Translator.this.visit(node);
+////			Entry e = entry(node);
+////			if(e != null) {
+////				PrimitiveType type = ast.newPrimitiveType(PrimitiveType.LONG);
+////				replace(node, type);
+////				return false;
+////			}
+////			return true;
+//		}
+//		
+//	}
 	public class StackAllocInitializerChecker extends ASTVisitor {
 		Entry e;
 		String varName;
@@ -124,12 +129,12 @@ public class Translator extends ASTVisitor {
 	
 	AST ast;
 	TypeTranslator typeTranslator;
-	FieldTranslator fieldTranslator;
+//	FieldTranslator fieldTranslator;
 	StackAllocInitializerChecker stackAllocChecker;
 	public Translator(CompilationUnit cu) {
 		ast = cu.getAST();
 		typeTranslator = new TypeTranslator();
-		fieldTranslator = new FieldTranslator();
+//		fieldTranslator = new FieldTranslator();
 		stackAllocChecker = new StackAllocInitializerChecker();
 	}	
 	public static boolean debug = false;
@@ -282,9 +287,11 @@ public class Translator extends ASTVisitor {
 		Entry e = entry(node.getElementType());
 		if(e != null) {			
 			int dims = node.getDimensions();
-			if(dims > 1) throw new CompilerError("Multidimensional arrays not implemented. " + dims);
-		
-			SimpleType type = type(theleo, jstruct, hidden, (e.hasJavaObjects()?"Hyb":"Ref")+dims);						
+//			if(dims > 1) throw new CompilerError("Multidimensional arrays not implemented. " + dims);
+			SimpleType type = (dims > 1) ? type(theleo, jstruct, hidden, (e.hasJavaObjects()?"HybN":"RefN"))
+			: type(theleo, jstruct, hidden, (e.hasJavaObjects()?"Hyb1":"Ref1"));						
+			
+//			SimpleType type = type(theleo, jstruct, hidden, (e.hasJavaObjects()?"Hyb":"Ref")+dims);						
 			replace(node, type);			
 			return false;
 		}
@@ -296,8 +303,8 @@ public class Translator extends ASTVisitor {
 		Entry e = entry(node.getType().getElementType());
 		if(e != null) {
 			List dims = node.dimensions();
-			if(dims.size() > 1) throw new CompilerError("Multidimensional arrays not implemented. " + dims.size());
-			ASTNode expr = copy((ASTNode)dims.get(0));
+//			if(dims.size() > 1) throw new CompilerError("Multidimensional arrays not implemented. " + dims.size());
+//			ASTNode expr = copy((ASTNode)dims.get(0));
 			
 			MethodInvocation m = ast.newMethodInvocation();
 			m.setExpression(name(MEM0));
@@ -305,23 +312,33 @@ public class Translator extends ASTVisitor {
 			if(e.hasJavaObjects()) {
 				m.setName(name("allocHybrid"));
 				List args = m.arguments();
-				args.add(expr);
+//				args.add(expr);
 				args.add(returnLong(e.structSize));
 				args.add(returnBool(e.zero));
 				args.add(returnLong(e.globalObjCount));
-				for(int i = 0; i < e.objOffsets.length; i++) {
-					args.add(returnLong(e.objOffsets[i]));
-					args.add(returnLong(e.objCounts[i]));
-				}
+				
+				FieldAccess fa = ast.newFieldAccess();
+				fa.setExpression(ast.newName(e.qualifiedName));
+				fa.setName(name(HYB_CLS_OFFSETS));
+				args.add(fa);
+				
+				for(int i = 0; i < dims.size(); i++)
+					args.add(copy((ASTNode)dims.get(i)));
+//				for(int i = 0; i < e.objOffsets.length; i++) {
+//					args.add(returnLong(e.objOffsets[i]));
+//					args.add(returnLong(e.objCounts[i]));
+//				}
 			}
 			else {
 				m.setName(name("alloc"));
 				List args = m.arguments();
-				args.add(expr);
+//				args.add(expr);
 				args.add(returnLong(e.structSize));
 				args.add(returnBool(e.zero));
+				for(int i = 0; i < dims.size(); i++)
+					args.add(copy((ASTNode)dims.get(i)));
 			}
-
+			
 			replace(node, m);			
 			return false;
 		}
@@ -332,13 +349,23 @@ public class Translator extends ASTVisitor {
 	public boolean visit(ArrayAccess node) {		
 		Entry e = entry(node);
 		if(e != null) {			
-			ASTNode name = copy(node.getArray());
-			ASTNode index = copy(node.getIndex());
+			ASTNode name = (node.getArray());
+//			ASTNode index = copy(node.getIndex());
+			
+//			System.err.println("Array is " + node.getArray() + " index " + index) ;
 			
 			MethodInvocation m = ast.newMethodInvocation();
-			m.setExpression((Expression)name);
+			List args = m.arguments();
+			args.add(copy(node.getIndex()));
+			
+			while(name instanceof ArrayAccess) {
+				ArrayAccess aa = (ArrayAccess)name;
+				name = aa.getArray();
+				args.add(0,copy(aa.getIndex()));
+			}
+					
+			m.setExpression((Expression)copy(name));
 			m.setName(name("getIndex"));
-			m.arguments().add(index);
 					
 			m.setProperty(TYPEBIND_PROP, e);
 			
@@ -369,6 +396,9 @@ public class Translator extends ASTVisitor {
 						m.setProperty(TYPEBIND_METHOD, METHOD_PTR);
 						replace(node, m);
 						return false;
+
+//						System.out.println("field " + node);
+//						return true;
 					}
 				}
 			}
@@ -484,6 +514,80 @@ public class Translator extends ASTVisitor {
 		}
 		else replace(node, m);
 	}
+
+	@Override
+	public boolean visit(PrefixExpression node) {
+		return super.visit(node); 
+	}
+
+	@Override
+	public void endVisit(PrefixExpression node) {
+		super.endVisit(node);
+		//Prefix expressions have been translated
+		//If prefix on a structure's value
+		
+		Expression op = node.getOperand();
+		if(op instanceof MethodInvocation) {
+			MethodInvocation m = (MethodInvocation)op;
+			
+			switch(node.getOperator().toString()) {
+				case "++":
+					m.setName(name(m.getName()+"PreIncr"));
+					break;
+				case "--":
+					m.setName(name(m.getName()+"PreDecr"));
+					break;
+				case "+":
+				case "-":
+				case "~":
+				case "!":
+					//No action needed for these operators
+					return;
+				default:
+					throw new CompilerError("Unknown prefix operator: " + node.getOperator().toString());
+			}
+			m.setExpression(name(MEM0));
+
+			replace(node, ASTNode.copySubtree(ast,m));
+		}
+	}
+	
+	
+
+	@Override
+	public boolean visit(PostfixExpression node) {
+		boolean ret = super.visit(node);
+		return ret;
+	}
+
+	@Override
+	public void endVisit(PostfixExpression node) {
+		super.endVisit(node); 
+		
+		//Postfix expressions have been translated
+		//If postfix on a structure's value
+		
+		Expression op = node.getOperand();
+		if(op instanceof MethodInvocation) {
+			MethodInvocation m = (MethodInvocation)op;
+			
+			//there are only two postfix operators
+			switch(node.getOperator().toString()) {
+				case "++":
+					m.setName(name(m.getName()+"PostIncr"));
+					break;
+				case "--":
+					m.setName(name(m.getName()+"PostDecr"));
+					break;
+				default:
+					throw new CompilerError("Unknown postfix operator: " + node.getOperator().toString());
+			}
+			m.setExpression(name(MEM0));
+
+			replace(node, ASTNode.copySubtree(ast,m));
+		}
+	}
+	
 	
 
 	@Override
@@ -519,7 +623,7 @@ public class Translator extends ASTVisitor {
 				if(e != null) {
 					//Assignment to reference
 					if(node.getOperator() != Assignment.Operator.ASSIGN) {
-						throw new CompilerError("Assignment operator not supported.");
+						throw new CompilerError("Assignment operator not supported...");
 					}
 					
 					FieldAccess fa = ast.newFieldAccess();
@@ -536,18 +640,13 @@ public class Translator extends ASTVisitor {
 				FieldEntry ft = e.offsetTable.get(select.getIdentifier());
 				if(ft == null) CompilerError.exec(CompilerError.STRUCT_FIELD_NOT_FOUND, e.binaryName + " . " + select.getIdentifier());
 				
-				
-				if(node.getOperator() != Assignment.Operator.ASSIGN) {
-					throw new CompilerError("Assignment operator not supported.");
-				}
-				
 				Expression rhs = node.getRightHandSide();
-				if(rhs instanceof InfixExpression) {
-					InfixExpression inf = (InfixExpression)rhs;
-					if(!inf.hasExtendedOperands()) {
-						
-					}
-				}
+//				if(rhs instanceof InfixExpression) {
+//					InfixExpression inf = (InfixExpression)rhs;
+//					if(!inf.hasExtendedOperands()) {
+//						
+//					}
+//				}
 				
 				int offset = ft.offset;
 				expr = (Expression)ASTNode.copySubtree(ast, expr);
@@ -564,11 +663,19 @@ public class Translator extends ASTVisitor {
 				}
 				
 				if(ft.isStruct()) {
+					if(node.getOperator() != Assignment.Operator.ASSIGN) {
+						throw new CompilerError("Assignment operator not supported on struct.");
+					}
+					
 					err("STRUCT TYpe");
 					replace(node, copyObject(ft.structType, rhs, args));
 					return false;
 				}
 				else if(ft.isReference()) {
+					if(node.getOperator() != Assignment.Operator.ASSIGN) {
+						throw new CompilerError("Assignment operator not supported on reference.");
+					}
+					
 					MethodInvocation m = ast.newMethodInvocation();
 					m.setExpression(name(MEM0_U));
 					m.setName(name("putLong"));
@@ -584,9 +691,29 @@ public class Translator extends ASTVisitor {
 					return false;
 				}
 				else {
+					String metName = "put";
+					if(node.getOperator() != Assignment.Operator.ASSIGN) {
+						switch(node.getOperator().toString()) {
+							case "+=":   metName = "putAdd"; break;
+							case "-=":   metName = "putSub"; break;
+							case "*=":	 metName = "putMul"; break;
+							case "/=":   metName = "putDiv"; break;
+							case "&=":   metName = "putAnd"; break;
+							case "|=":   metName = "putOr"; break;
+							case "^=":   metName = "putXor"; break;
+							case "%=":   metName = "putMod"; break;
+							case "<<=":  metName = "putLShift"; break;
+							case ">>=":  metName = "putRShift"; break;
+							case ">>>=": metName = "putRRShift"; break;
+							default:
+								throw new CompilerError("Unknown operator " + node.getOperator().toString());
+						}
+					}
+					
 					MethodInvocation m = ast.newMethodInvocation();
-					m.setExpression(name((ft.type==FieldType.OBJECT || ft.type == FieldType.BOOLEAN)?MEM0:MEM0_U));
-					m.setName(name("put"+ft.type.name));
+//					m.setExpression(name((ft.type==FieldType.OBJECT || ft.type == FieldType.BOOLEAN || node.getOperator() != Assignment.Operator.ASSIGN)?MEM0:MEM0_U));
+					m.setExpression(name(MEM0));
+					m.setName(name(metName+ft.type.name));
 					m.setProperty(TYPEBIND_PROP, ft.type);
 
 					List list = m.arguments();
@@ -714,12 +841,24 @@ public class Translator extends ASTVisitor {
 								replace(node, m0);
 							}
 							return false;
+						case "len":
+//							e = typeLiteral(node.arguments().get(0));
+							
+							MethodInvocation mi2 = ast.newMethodInvocation();
+							mi2.setExpression((Expression)copy((Expression)node.arguments().get(0)));
+							mi2.setName(name("getLength"));
+							mi2.arguments().add((Expression)copy((Expression)node.arguments().get(1)));
+							mi2.setProperty(TYPEBIND_PROP, FieldType.LONG);
+							
+							replace(node, mi2);
+							return false;
 						case "li":
 							n = copy((Expression)node.arguments().get(0));
 							n.setProperty(TYPEBIND_PROP, FieldType.LONG);
 							
 							replace(node, n);
-							break;
+//							break;
+							return false;
 						case "sizeOf":
 							e = typeLiteral(node.arguments().get(0));
 							ival = e == null?-1:e.structSize;
@@ -779,10 +918,15 @@ public class Translator extends ASTVisitor {
 								args.add(op);
 								args.add(op2);
 								args.add(name(STACK_BASE_HI));
-								for(int i = 0; i < e.objOffsets.length; i++) {
-									args.add(returnLong(e.objOffsets[i]));
-									args.add(returnLong(e.objCounts[i]));
-								}
+								
+								FieldAccess fa = ast.newFieldAccess();
+								fa.setExpression(ast.newName(e.qualifiedName));
+								fa.setName(name(HYB_CLS_OFFSETS));
+								args.add(fa);
+//								for(int i = 0; i < e.objOffsets.length; i++) {
+//									args.add(returnLong(e.objOffsets[i]));
+//									args.add(returnLong(e.objCounts[i]));
+//								}
 								
 								replace(node, mi);
 							}
@@ -803,8 +947,15 @@ public class Translator extends ASTVisitor {
 				}
 				else if(binName.equals("theleo.jstruct.hidden.Mem0")) {
 					Entry e; 
+					ASTNode n;
 					String metName = m.getName();
 					switch(metName) {
+						case "as":
+							n = copy((Expression)node.arguments().get(0));
+//							n.setProperty(TYPEBIND_PROP, FieldType.LONG);
+							
+							replace(node, n);
+							return false;
 						case "stackRaw":
 							e = typeLiteral(node.arguments().get(0));
 							MethodFrame mf = getMethod();
@@ -835,10 +986,14 @@ public class Translator extends ASTVisitor {
 								args.add(op);
 								args.add(op2);
 								args.add(name(STACK_BASE_HI));
-								for(int i = 0; i < e.objOffsets.length; i++) {
-									args.add(returnLong(e.objOffsets[i]));
-									args.add(returnLong(e.objCounts[i]));
-								}
+								FieldAccess fa = ast.newFieldAccess();
+								fa.setExpression(ast.newName(e.qualifiedName));
+								fa.setName(name(HYB_CLS_OFFSETS));
+								args.add(fa);
+//								for(int i = 0; i < e.objOffsets.length; i++) {
+//									args.add(returnLong(e.objOffsets[i]));
+//									args.add(returnLong(e.objCounts[i]));
+//								}
 								
 								replace(node, mi);
 							}
@@ -848,6 +1003,21 @@ public class Translator extends ASTVisitor {
 								
 
 								replace(node, op);
+							}
+							return false;
+						case "getHybOffsets":
+							TypeLiteral typeLit = (TypeLiteral)node.arguments().get(0);
+							e = entry(typeLit.getType());
+							if(e == null || !e.hasJavaObjects()) {
+								replace(node, ast.newNullLiteral());
+							}
+							else {
+								Type type = typeLit.getType();	
+								String qualName = type.resolveBinding().getQualifiedName();
+								FieldAccess fa = ast.newFieldAccess();
+								fa.setExpression(ast.newName(qualName));
+								fa.setName(name(HYB_CLS_OFFSETS));
+								replace(node, fa);
 							}
 							return false;
 					}
@@ -927,6 +1097,39 @@ public class Translator extends ASTVisitor {
 				else ((ASTNode)l.get(i)).accept(this);
 			}
 			
+			if(e.hasJavaObjects()) {
+				//Store objects offsets/counts in static field
+				//to speed up allocation
+				
+				ArrayInitializer arrInit = ast.newArrayInitializer();
+				List nums = arrInit.expressions();
+				
+				for(int i = 0; i < e.objOffsets.length; i++) {
+					nums.add(returnInt(e.objOffsets[i]));
+					nums.add(returnInt(e.objCounts[i]));
+				}
+				
+				ArrayCreation arr =	ast.newArrayCreation();
+				Type intType = ast.newPrimitiveType(PrimitiveType.INT);
+				intType.setProperty(TYPEBIND_PROP, FieldType.INT);
+				
+				arr.setType(ast.newArrayType(intType, 1));
+				arr.setInitializer(arrInit);
+				arr.setProperty(TYPEBIND_PROP, FieldType.OBJECT);
+				
+				VariableDeclarationFragment var = ast.newVariableDeclarationFragment();
+				var.setName(name(HYB_CLS_OFFSETS));
+				var.setInitializer(arr);
+				
+				FieldDeclaration dec = ast.newFieldDeclaration(var);
+				List mods = dec.modifiers();
+				mods.add(ast.newModifier(Modifier.ModifierKeyword.PUBLIC_KEYWORD));
+				mods.add(ast.newModifier(Modifier.ModifierKeyword.STATIC_KEYWORD));
+				mods.add(ast.newModifier(Modifier.ModifierKeyword.FINAL_KEYWORD));
+				dec.setType((Type)copy(arr.getType()));
+				l.add(dec);
+			}
+			
 			return false;
 		}
 		return super.visit(node);
@@ -934,8 +1137,30 @@ public class Translator extends ASTVisitor {
 
 	@Override
 	public boolean visit(FieldDeclaration node) {
-		node.accept(fieldTranslator);
-		return false;
+//		node.accept(fieldTranslator); 
+		//translated types...
+
+//		Entry e = entry(node.getType());
+//		if(e != null) {
+//			PrimitiveType type = ast.newPrimitiveType(PrimitiveType.LONG);
+//			replace(node, type);
+//			return false;
+//		}
+//		return false;
+//		return false;
+
+		Entry e = entry(node.getType());
+		if(e != null) {
+			PrimitiveType type = ast.newPrimitiveType(PrimitiveType.LONG);
+			
+			FieldDeclaration copy = (FieldDeclaration)ASTNode.copySubtree(ast, node);
+			copy.setType(type);
+			
+			replace(node, copy);
+			return false;
+		}
+
+		return super.visit(node);
 	}
 	
 	
@@ -981,6 +1206,22 @@ public class Translator extends ASTVisitor {
 
 	@Override
 	public boolean visit(MethodDeclaration node) {
+		IMethodBinding methodBinding = node.resolveBinding();
+		
+		if(methodBinding != null) {
+			IAnnotationBinding[] ab = methodBinding.getAnnotations();
+			if(ab != null) {
+				for(int i = 0; i < ab.length; i++) {
+					IAnnotationBinding aa = ab[i];
+					String aName = aa.getAnnotationType().getQualifiedName();
+					if(aName.equals("theleo.jstruct.ReturnStruct")) {
+						PrimitiveType type = ast.newPrimitiveType(PrimitiveType.LONG);
+						node.setReturnType2(type);
+					}
+				}
+			}
+		}
+		
 		methodStack.add(new MethodFrame());
 		return true;
 	}

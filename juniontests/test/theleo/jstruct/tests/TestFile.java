@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Juraj Papp
+ * Copyright (c) 2019, Juraj Papp
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -24,67 +24,40 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package theleo.jstruct.hidden;
+package theleo.jstruct.tests;
+
+import java.awt.Point;
+import theleo.jstruct.Mem;
+import theleo.jstruct.Struct;
+import theleo.jstruct.hidden.Mem0;
 
 /**
  *
  * @author Juraj Papp
  */
-public class Hyb1 implements AutoCloseable {
-	public final long base;
-	public final long length;
-	public final long structSize;
-	public final int hybridSize;
-	public final int step;
-
-	public final AutoHybrid owner;
-	public final Object[] hybridData;
-	public Hyb1(long base, long length, long strSize, int hybridSize) {
-		this.base = base;
-		this.length = length;
-		this.structSize = strSize;
-		this.hybridSize = hybridSize;
-		this.hybridData = new Object[(int)(length*hybridSize)];
-		this.step = 1;
-		this.owner = (AutoHybrid)this;
+public class TestFile {
+	@Struct
+	public static class Vec3 { 
+		int x, y, z;
+		Point p; 
 	}
-	public Hyb1(AutoHybrid owner, long base, long length, long strSize, int step) {
-		this.base = base;
-		this.length = length;
-		this.structSize = strSize;
-		this.hybridSize = owner.hybridSize;
-		this.hybridData = owner.hybridData;
-		this.owner = owner;
-		this.step = step;
+	public static void main(String[] args) {
+		Vec3 v = Mem.stack(Vec3.class);
+		{ v.x = 0; v.y = 1; v.z = 2; v.p = null; }
+		v.p = new Point();
+		
+//		(get(v, 1+2+3+5+v.x--).x)++;
+//		float i = 0;
+		
+//		i = (i)++;
+		System.out.println(v.z);
+		
+		get(v, 1).z = 5;
+		System.out.println(v.z);
+		double d = v.p.getX();
+		double d2 = (v.p).x;
+		v.p.x++;
+		
 	}
-	
-	public void free() {
-				
-	}
-	
-	public final long getIndex(int i) {
-		if(i < 0 || i >= length)
-//		if(Long.compareUnsigned(i, length) >= 0)
-			throw new IndexOutOfBoundsException(Integer.toString(i));
-		return base + i * structSize;
-	}
-	public final long getIndex(long i) {
-		if(i < 0 || i >= length)
-//		if(Long.compareUnsigned(i, length) >= 0)
-			throw new IndexOutOfBoundsException(Long.toString(i));
-		return base + i * structSize;
-	}
-	
-	public final long getLength(int dim) { return length; }
-	
-	@Override
-	public final void close() {
-		free();
-	}
-
-	@Override
-	public String toString() {
-		return "StructArray";
-	}
-	
+	static Vec3 get(Vec3 v, int i) {return v;} 
 }

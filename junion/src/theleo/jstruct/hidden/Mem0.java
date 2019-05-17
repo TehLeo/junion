@@ -27,6 +27,7 @@
 package theleo.jstruct.hidden;
 
 import java.lang.reflect.Field;
+import java.util.Arrays;
 import sun.misc.Unsafe;
 import theleo.jstruct.NullPointerDereference;
 import theleo.jstruct.StackOutOfMemory;
@@ -51,7 +52,7 @@ public class Mem0 {
 		long offset = 0;
 		try {
 			f = Thread.class.getDeclaredField("blockerLock");
-			f.setAccessible(true);
+//			no need to set acessible f.setAccessible(true);
 			offset = Mem0.u.objectFieldOffset(f);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -129,7 +130,7 @@ public class Mem0 {
 		}
 	}
 	
-	public static long allocHybOnStack(long addr, int posObj, int hybridIndex, int... ownerOffet) {
+	public static long allocHybOnStack(long addr, int posObj, int hybridIndex, int[] ownerOffet) {
 //		if(zero) u.setMemory(base, allocSize, (byte)0);
 		
 		for(int i = 0; i < ownerOffet.length; i += 2) {
@@ -143,8 +144,13 @@ public class Mem0 {
 		
 		return addr;
 	}
-		
-	public static AutoHybrid allocHybrid(long length, long structSize, boolean zero, int glObjCount, int... ownerOffet) {
+	
+	public static HybN allocHybrid(long structSize, boolean zero, int glObjCount, int[] ownerOffset, long... dims) {
+		long length = dims[0];
+		for(int i = dims.length-1; i > 0; i--) length *= dims[i];
+		return dims(allocHybrid(structSize, zero, glObjCount, ownerOffset, length), dims);
+	}		
+	public static AutoHybrid allocHybrid(long structSize, boolean zero, int glObjCount, int[] ownerOffset, long length) {
 		long allocSize = length*structSize;
 		long base = alloc(allocSize);
 		if(zero) u.setMemory(base, allocSize, (byte)0);
@@ -155,9 +161,9 @@ public class Mem0 {
 		auto.hybridIndex = found;
 		int index = 0;
 		for(long l = 0; l < length; l++) {
-			for(int i = 0; i < ownerOffet.length; i += 2) {
-				int off = ownerOffet[i];
-				int count = ownerOffet[i+1];
+			for(int i = 0; i < ownerOffset.length; i += 2) {
+				int off = ownerOffset[i];
+				int count = ownerOffset[i+1];
 				
 				u.putInt(base+off, found);
 				u.putInt(base+off+4, index);
@@ -167,7 +173,33 @@ public class Mem0 {
 		}
 		return auto;
 	}
-	public static AutoArray alloc(long length, long structSize, boolean zero) {
+	/**
+	 * 
+	 * 
+	 * @param classLiteral - class literal of a hybrid struct
+	 * @return array with offsets of java objects references or null if classLiteral is not a hybrid struct
+	 */
+	public static int[] getHybOffsets(Class classLiteral) {
+		throw new CompileException();
+	}
+	public static HybN dims(HybN array, long... dims) {
+		return new HybN(array.owner, dims);
+	}
+	public static RefN dims(RefN array, long... dims) {
+		return new RefN(array.owner, dims);
+	}
+	public static HybN dims(Hyb1 array, long... dims) {
+		return new HybN(array, dims);
+	}
+	public static RefN dims(Ref1 array, long... dims) {
+		return new RefN(array, dims);
+	}
+	public static RefN alloc(long structSize, boolean zero, long... dims) {
+		long length = dims[0];
+		for(int i = dims.length-1; i > 0; i--) length *= dims[i];
+		return dims(alloc(structSize, zero, length), dims);
+	}
+	public static AutoArray alloc(long structSize, boolean zero, long length) {
 		long size = length*structSize;
 		long base = alloc(size);
 		if(zero) u.setMemory(base, size, (byte)0);
@@ -279,6 +311,11 @@ public class Mem0 {
 		return to;
 	}
 	
+	
+	
+	
+	
+	
 	public static boolean getBoolean(long addr) {
 //		if(addr == 0) throw new NullPointerException();
 		return u.getByte(addr)!=0;
@@ -289,6 +326,548 @@ public class Mem0 {
 		return f;
 	}
 	
+	//-------Put Methods-------
+	
+	public static byte putByte(long addr, byte f) {
+		u.putByte(addr, f);
+		return f;
+	}
+	public static short putShort(long addr, short f) {
+		u.putShort(addr, f);
+		return f;
+	}
+	public static char putChar(long addr, char f) {
+		u.putChar(addr, f);
+		return f;
+	}
+	public static float putFloat(long addr, float f) {
+		u.putFloat(addr, f);
+		return f;
+	}
+	public static double putDouble(long addr, double f) {
+		u.putDouble(addr, f);
+		return f;
+	}
+	public static int putInt(long addr, int f) {
+		u.putInt(addr, f);
+		return f;
+	}
+	public static long putLong(long addr, long f) {
+		u.putLong(addr, f);
+		return f;
+	}
+		
+	//-------Assignment Operators-------
+	//   -------boolean-------
+	public static boolean putAndBoolean(long addr, boolean f) {
+		f = u.getByte(addr)!=0 & f;
+		u.putByte(addr, f?(byte)1:(byte)0);
+		return f;
+	}
+	public static boolean putOrBoolean(long addr, boolean f) {
+		f = u.getByte(addr)!=0 | f;
+		u.putByte(addr, f?(byte)1:(byte)0);
+		return f;
+	}
+	public static boolean putXorBoolean(long addr, boolean f) {
+		f = u.getByte(addr)!=0 ^ f;
+		u.putByte(addr, f?(byte)1:(byte)0);
+		return f;
+	}
+	//   -------byte-------
+	public static byte putAddByte(long addr, byte f) {
+		f = (byte)(u.getByte(addr) + f);
+		u.putByte(addr, f);
+		return f;
+	}
+	public static byte putSubByte(long addr, byte f) {
+		f = (byte)(u.getByte(addr) - f);
+		u.putByte(addr, f);
+		return f;
+	}
+	public static byte putMulByte(long addr, byte f) {
+		f = (byte)(u.getByte(addr) * f);
+		u.putByte(addr, f);
+		return f;
+	}
+	public static byte putDivByte(long addr, byte f) {
+		f = (byte)(u.getByte(addr) / f);
+		u.putByte(addr, f);
+		return f;
+	}
+	public static byte putAndByte(long addr, byte f) {
+		f = (byte)(u.getByte(addr) & f);
+		u.putByte(addr, f);
+		return f;
+	}
+	public static byte putOrByte(long addr, byte f) {
+		f = (byte)(u.getByte(addr) | f);
+		u.putByte(addr, f);
+		return f;
+	}
+	public static byte putXorByte(long addr, byte f) {
+		f = (byte)(u.getByte(addr) ^ f);
+		u.putByte(addr, f);
+		return f;
+	}
+	public static byte putModByte(long addr, byte f) {
+		f = (byte)(u.getByte(addr) % f);
+		u.putByte(addr, f);
+		return f;
+	}
+	public static byte putLShiftByte(long addr, byte f) {
+		f = (byte)(u.getByte(addr) << f);
+		u.putByte(addr, f);
+		return f;
+	}
+	public static byte putRShiftByte(long addr, byte f) {
+		f = (byte)(u.getByte(addr) >> f);
+		u.putByte(addr, f);
+		return f;
+	}
+	public static byte putRRShiftByte(long addr, byte f) {
+		f = (byte)(u.getByte(addr) >>> f);
+		u.putByte(addr, f);
+		return f;
+	}
+	
+	//   -------short-------
+	public static short putAddShort(long addr, short f) {
+		f = (short)(u.getShort(addr) + f);
+		u.putShort(addr, f);
+		return f;
+	}
+	public static short putSubShort(long addr, short f) {
+		f = (short)(u.getShort(addr) - f);
+		u.putShort(addr, f);
+		return f;
+	}
+	public static short putMulShort(long addr, short f) {
+		f = (short)(u.getShort(addr) * f);
+		u.putShort(addr, f);
+		return f;
+	}
+	public static short putDivShort(long addr, short f) {
+		f = (short)(u.getShort(addr) / f);
+		u.putShort(addr, f);
+		return f;
+	}
+	public static short putAndShort(long addr, short f) {
+		f = (short)(u.getShort(addr) & f);
+		u.putShort(addr, f);
+		return f;
+	}
+	public static short putOrShort(long addr, short f) {
+		f = (short)(u.getShort(addr) | f);
+		u.putShort(addr, f);
+		return f;
+	}
+	public static short putXorShort(long addr, short f) {
+		f = (short)(u.getShort(addr) ^ f);
+		u.putShort(addr, f);
+		return f;
+	}
+	public static short putModShort(long addr, short f) {
+		f = (short)(u.getShort(addr) % f);
+		u.putShort(addr, f);
+		return f;
+	}
+	public static short putLShiftShort(long addr, short f) {
+		f = (short)(u.getShort(addr) << f);
+		u.putShort(addr, f);
+		return f;
+	}
+	public static short putRShiftShort(long addr, short f) {
+		f = (short)(u.getShort(addr) >> f);
+		u.putShort(addr, f);
+		return f;
+	}
+	public static short putRRShiftShort(long addr, short f) {
+		f = (short)(u.getShort(addr) >>> f);
+		u.putShort(addr, f);
+		return f;
+	}
+		//   -------char-------
+	public static char putAddChar(long addr, char f) {
+		f = (char)(u.getChar(addr) + f);
+		u.putChar(addr, f);
+		return f;
+	}
+	public static char putSubChar(long addr, char f) {
+		f = (char)(u.getChar(addr) - f);
+		u.putChar(addr, f);
+		return f;
+	}
+	public static char putMulChar(long addr, char f) {
+		f = (char)(u.getChar(addr) * f);
+		u.putChar(addr, f);
+		return f;
+	}
+	public static char putDivChar(long addr, char f) {
+		f = (char)(u.getChar(addr) / f);
+		u.putChar(addr, f);
+		return f;
+	}
+	public static char putAndChar(long addr, char f) {
+		f = (char)(u.getChar(addr) & f);
+		u.putChar(addr, f);
+		return f;
+	}
+	public static char putOrChar(long addr, char f) {
+		f = (char)(u.getChar(addr) | f);
+		u.putChar(addr, f);
+		return f;
+	}
+	public static char putXorChar(long addr, char f) {
+		f = (char)(u.getChar(addr) ^ f);
+		u.putChar(addr, f);
+		return f;
+	}
+	public static char putModChar(long addr, char f) {
+		f = (char)(u.getChar(addr) % f);
+		u.putChar(addr, f);
+		return f;
+	}
+	public static char putLShiftChar(long addr, char f) {
+		f = (char)(u.getChar(addr) << f);
+		u.putChar(addr, f);
+		return f;
+	}
+	public static char putRShiftChar(long addr, char f) {
+		f = (char)(u.getChar(addr) >> f);
+		u.putChar(addr, f);
+		return f;
+	}
+	public static char putRRShiftChar(long addr, char f) {
+		f = (char)(u.getChar(addr) >>> f);
+		u.putChar(addr, f);
+		return f;
+	}
+		//   -------int-------
+	public static int putAddInt(long addr, int f) {
+		f = u.getInt(addr) + f;
+		u.putInt(addr, f);
+		return f;
+	}
+	public static int putSubInt(long addr, int f) {
+		f = u.getInt(addr) - f;
+		u.putInt(addr, f);
+		return f;
+	}
+	public static int putMulInt(long addr, int f) {
+		f = u.getInt(addr) * f;
+		u.putInt(addr, f);
+		return f;
+	}
+	public static int putDivInt(long addr, int f) {
+		f = u.getInt(addr) / f;
+		u.putInt(addr, f);
+		return f;
+	}
+	public static int putAndInt(long addr, int f) {
+		f = u.getInt(addr) & f;
+		u.putInt(addr, f);
+		return f;
+	}
+	public static int putOrInt(long addr, int f) {
+		f = u.getInt(addr) | f;
+		u.putInt(addr, f);
+		return f;
+	}
+	public static int putXorInt(long addr, int f) {
+		f = u.getInt(addr) ^ f;
+		u.putInt(addr, f);
+		return f;
+	}
+	public static int putModInt(long addr, int f) {
+		f = u.getInt(addr) % f;
+		u.putInt(addr, f);
+		return f;
+	}
+	public static int putLShiftInt(long addr, int f) {
+		f = u.getInt(addr) << f;
+		u.putInt(addr, f);
+		return f;
+	}
+	public static int putRShiftInt(long addr, int f) {
+		f = u.getInt(addr) >> f;
+		u.putInt(addr, f);
+		return f;
+	}
+	public static int putRRShiftInt(long addr, int f) {
+		f = u.getInt(addr) >>> f;
+		u.putInt(addr, f);
+		return f;
+	}
+		//   -------long-------
+	public static long putAddLong(long addr, long f) {
+		f = u.getLong(addr) + f;
+		u.putLong(addr, f);
+		return f;
+	}
+	public static long putSubLong(long addr, long f) {
+		f = u.getLong(addr) - f;
+		u.putLong(addr, f);
+		return f;
+	}
+	public static long putMulLong(long addr, long f) {
+		f = u.getLong(addr) * f;
+		u.putLong(addr, f);
+		return f;
+	}
+	public static long putDivLong(long addr, long f) {
+		f = u.getLong(addr) / f;
+		u.putLong(addr, f);
+		return f;
+	}
+	public static long putAndLong(long addr, long f) {
+		f = u.getLong(addr) & f;
+		u.putLong(addr, f);
+		return f;
+	}
+	public static long putOrLong(long addr, long f) {
+		f = u.getLong(addr) | f;
+		u.putLong(addr, f);
+		return f;
+	}
+	public static long putXorLong(long addr, long f) {
+		f = u.getLong(addr) ^ f;
+		u.putLong(addr, f);
+		return f;
+	}
+	public static long putModLong(long addr, long f) {
+		f = u.getLong(addr) % f;
+		u.putLong(addr, f);
+		return f;
+	}
+	public static long putLShiftLong(long addr, long f) {
+		f = u.getLong(addr) << f;
+		u.putLong(addr, f);
+		return f;
+	}
+	public static long putRShiftLong(long addr, long f) {
+		f = u.getLong(addr) >> f;
+		u.putLong(addr, f);
+		return f;
+	}
+	public static long putRRShiftLong(long addr, long f) {
+		f = u.getLong(addr) >>> f;
+		u.putLong(addr, f);
+		return f;
+	}
+		//   -------float-------
+	public static float putAddFloat(long addr, float f) {
+		f = u.getFloat(addr) + f;
+		u.putFloat(addr, f);
+		return f;
+	}
+	public static float putSubFloat(long addr, float f) {
+		f = u.getFloat(addr) - f;
+		u.putFloat(addr, f);
+		return f;
+	}
+	public static float putMulFloat(long addr, float f) {
+		f = u.getFloat(addr) * f;
+		u.putFloat(addr, f);
+		return f;
+	}
+	public static float putDivFloat(long addr, float f) {
+		f = u.getFloat(addr) / f;
+		u.putFloat(addr, f);
+		return f;
+	}
+	public static float putModFloat(long addr, float f) {
+		f = u.getFloat(addr) % f;
+		u.putFloat(addr, f);
+		return f;
+	}
+		//   -------double-------
+	public static double putAddDouble(long addr, double f) {
+		f = u.getDouble(addr) + f;
+		u.putDouble(addr, f);
+		return f;
+	}
+	public static double putSubDouble(long addr, double f) {
+		f = u.getDouble(addr) - f;
+		u.putDouble(addr, f);
+		return f;
+	}
+	public static double putMulDouble(long addr, double f) {
+		f = u.getDouble(addr) * f;
+		u.putDouble(addr, f);
+		return f;
+	}
+	public static double putDivDouble(long addr, double f) {
+		f = u.getDouble(addr) / f;
+		u.putDouble(addr, f);
+		return f;
+	}
+	public static double putModDouble(long addr, double f) {
+		f = u.getDouble(addr) % f;
+		u.putDouble(addr, f);
+		return f;
+	}
+	
+	
+	//-------PreIncrement Operators-------
+	
+	public static byte getBytePreIncr(long addr) {
+		byte b = u.getByte(addr);
+		b++;
+		u.putByte(addr, b);
+		return b;
+	}
+	public static byte getBytePreDecr(long addr) {
+		byte b = u.getByte(addr);
+		b--;
+		u.putByte(addr, b);
+		return b;
+	}
+	public static short getShortPreIncr(long addr) {
+		short b = u.getShort(addr);
+		b++;
+		u.putShort(addr, b);
+		return b;
+	}
+	public static short getShortPreDecr(long addr) {
+		short b = u.getShort(addr);
+		b--;
+		u.putShort(addr, b);
+		return b;
+	}
+	public static char getCharPreIncr(long addr) {
+		char b = u.getChar(addr);
+		b++;
+		u.putChar(addr, b);
+		return b;
+	}
+	public static char getCharPreDecr(long addr) {
+		char b = u.getChar(addr);
+		b--;
+		u.putChar(addr, b);
+		return b;
+	}
+	public static int getIntPreIncr(long addr) {
+		int b = u.getInt(addr);
+		b++;
+		u.putInt(addr, b);
+		return b;
+	}
+	public static int getIntPreDecr(long addr) {
+		int b = u.getInt(addr);
+		b--;
+		u.putInt(addr, b);
+		return b;
+	}
+	public static long getLongPreIncr(long addr) {
+		long b = u.getLong(addr);
+		b++;
+		u.putLong(addr, b);
+		return b;
+	}
+	public static long getLongPreDecr(long addr) {
+		long b = u.getLong(addr);
+		b--;
+		u.putLong(addr, b);
+		return b;
+	}
+	public static float getFloatPreIncr(long addr) {
+		float b = u.getFloat(addr);
+		b++;
+		u.putFloat(addr, b);
+		return b;
+	}
+	public static float getFloatPreDecr(long addr) {
+		float b = u.getFloat(addr);
+		b--;
+		u.putFloat(addr, b);
+		return b;
+	}
+	public static double getDoublePreIncr(long addr) {
+		double b = u.getDouble(addr);
+		b++;
+		u.putDouble(addr, b);
+		return b;
+	}
+	public static double getDoublePreDecr(long addr) {
+		double b = u.getDouble(addr);
+		b--;
+		u.putDouble(addr, b);
+		return b;
+	}
+	
+	//-------PostIncrement Operators-------
+	
+	public static byte getBytePostIncr(long addr) {
+		byte b = u.getByte(addr);
+		u.putByte(addr, (byte)(b+1));
+		return b;
+	}
+	public static byte getBytePostDecr(long addr) {
+		byte b = u.getByte(addr);
+		u.putByte(addr, (byte)(b-1));
+		return b;
+	}
+	public static short getShortPostIncr(long addr) {
+		short b = u.getShort(addr);
+		u.putShort(addr, (short)(b+1));
+		return b;
+	}
+	public static short getShortPostDecr(long addr) {
+		short b = u.getShort(addr);
+		u.putShort(addr, (short)(b-1));
+		return b;
+	}
+	public static char getCharPostIncr(long addr) {
+		char b = u.getChar(addr);
+		u.putChar(addr, (char)(b+1));
+		return b;
+	}
+	public static char getCharPostDecr(long addr) {
+		char b = u.getChar(addr);
+		u.putChar(addr, (char)(b-1));
+		return b;
+	}
+	public static int getIntPostIncr(long addr) {
+		int b = u.getInt(addr);
+		u.putInt(addr, b+1);
+		return b;
+	}
+	public static int getIntPostDecr(long addr) {
+		int b = u.getInt(addr);
+		u.putInt(addr, b-1);
+		return b;
+	}
+	public static long getLongPostIncr(long addr) {
+		long b = u.getLong(addr);
+		u.putLong(addr, b+1);
+		return b;
+	}
+	public static long getLongPostDecr(long addr) {
+		long b = u.getLong(addr);
+		u.putLong(addr, b-1);
+		return b;
+	}
+	public static float getFloatPostIncr(long addr) {
+		float b = u.getFloat(addr);
+		u.putFloat(addr, b+1);
+		return b;
+	}
+	public static float getFloatPostDecr(long addr) {
+		float b = u.getFloat(addr);
+		u.putFloat(addr, b-1);
+		return b;
+	}
+	public static double getDoublePostIncr(long addr) {
+		double b = u.getDouble(addr);
+		u.putDouble(addr, b+1);
+		return b;
+	}
+	public static double getDoublePostDecr(long addr) {
+		double b = u.getDouble(addr);
+		u.putDouble(addr, b-1);
+		return b;
+	}
 	
 //	public static boolean getBoolean(long addr) {
 //		if(addr == 0) throw new NullPointerException();

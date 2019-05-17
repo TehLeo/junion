@@ -65,6 +65,8 @@ public class Ref1 implements AutoCloseable {
 		return base + i * structSize;
 	}
 	
+	public final long getLength(int dim) { return length; }
+	
 	@Override
 	public final void close() {
 		free();

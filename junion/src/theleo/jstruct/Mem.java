@@ -32,8 +32,10 @@ import java.nio.ByteOrder;
 import sun.nio.ch.DirectBuffer;
 import theleo.jstruct.hidden.CompileException;
 import theleo.jstruct.hidden.Hyb1;
+import theleo.jstruct.hidden.HybN;
 import theleo.jstruct.hidden.Mem0;
 import theleo.jstruct.hidden.Ref1;
+import theleo.jstruct.hidden.RefN;
 
 /**
  *
@@ -112,7 +114,19 @@ public class Mem {
 	 */
 	public static int li(long l) { throw new CompileException(); }
 	
-	
+	/**
+	 * Returns the length of multidimensional array.
+	 * eg. Vec3[][] arr = new Vec3[5][7];
+	 * 
+	 * len(arr, 0) returns 5
+	 * len(arr, 1) returns 7
+	 * 
+	 * @param arr - struct array
+	 * @param dim - dimension index
+	 * @return the lenght of multidimensional array
+	 */
+	public static long len(Object arr, int dim) { throw new CompileException(); }
+		
 	/**
 	 * The following function does nothing except
 	 * keeping the object alive.
@@ -137,6 +151,111 @@ public class Mem {
 	 * @param o - struct array
 	 */
 	public static void tag(Object o) {}
+	
+	/**
+	 * Returns a flattened 1D view of a multidimensional struct array.
+	 * 
+	 * Changes in one array are reflected in the other.
+	 * 
+	 * @param a - struct array
+	 * @return 
+	 */
+	public static <T> T[] flatten(Object a) { throw new IllegalArgumentException("Type is not struct array."); }
+	/**
+	 * Returns a flattened 1D view of a multidimensional struct array.
+	 * 
+	 * Changes in one array are reflected in the other.
+	 * 
+	 * @param a - struct array
+	 * @return 
+	 */
+	public static Ref1 flatten(Ref1 a) { return a; }
+	/**
+	 * Returns a flattened 1D view of a multidimensional struct array.
+	 * 
+	 * Changes in one array are reflected in the other.
+	 * 
+	 * @param a - struct array
+	 * @return 
+	 */
+	public static Hyb1 flatten(Hyb1 a) { return a; }
+	/**
+	 * Returns a flattened 1D view of a multidimensional struct array.
+	 * 
+	 * Changes in one array are reflected in the other.
+	 * 
+	 * @param a - struct array
+	 * @return 
+	 */
+	public static Ref1 flatten(RefN a) { return a.owner; }
+	/**
+	 * Returns a flattened 1D view of a multidimensional struct array.
+	 * 
+	 * Changes in one array are reflected in the other.
+	 * 
+	 * @param a - struct array
+	 * @return 
+	 */
+	public static Hyb1 flatten(HybN a) { return a.owner; }
+	
+	/**
+	 * Returns a multidimensional view of a 1D struct array.
+	 * 
+	 * Changes in one array are reflected in the other.
+	 * 
+	 * @param array
+	 * @param dims
+	 * @return 
+	 */
+	public static <T> T dims(Object array, long... dims) { throw new IllegalArgumentException("Type is not struct array."); }
+	/**
+	 * Returns a multidimensional view of a 1D struct array.
+	 * 
+	 * Changes in one array are reflected in the other.
+	 * 
+	 * @param array
+	 * @param dims
+	 * @return 
+	 */
+	public static HybN dims(HybN array, long... dims) {
+		return new HybN(array.owner, dims);
+	}
+	/**
+	 * Returns a multidimensional view of a 1D struct array.
+	 * 
+	 * Changes in one array are reflected in the other.
+	 * 
+	 * @param array
+	 * @param dims
+	 * @return 
+	 */
+	public static RefN dims(RefN array, long... dims) {
+		return new RefN(array.owner, dims);
+	}
+	/**
+	 * Returns a multidimensional view of a 1D struct array.
+	 * 
+	 * Changes in one array are reflected in the other.
+	 * 
+	 * @param array
+	 * @param dims
+	 * @return 
+	 */
+	public static HybN dims(Hyb1 array, long... dims) {
+		return new HybN(array, dims);
+	}
+	/**
+	 * Returns a multidimensional view of a 1D struct array.
+	 * 
+	 * Changes in one array are reflected in the other.
+	 * 
+	 * @param array
+	 * @param dims
+	 * @return 
+	 */
+	public static RefN dims(Ref1 array, long... dims) {
+		return new RefN(array, dims);
+	}
 	
 	/**
 	 * Creates a slice of an array without 
@@ -198,7 +317,7 @@ public class Mem {
 				new Ref1(arr.owner, arr.base+from*arr.structSize-(size-1)*arr.structSize*step, size, step*arr.structSize);
 	}
 	
-		/**
+	/**
 	 * Creates a slice of an array without 
 	 * copying the array contents.
 	 * 
@@ -235,6 +354,7 @@ public class Mem {
 	}
 	
 	//slice, dice, trice, quad(quart), pent
+	
 	
 	
 	
@@ -322,7 +442,7 @@ public class Mem {
 	
 	//---Layout info---
 	/**
-	 * Returns the byte alignment struct.
+	 * Returns the byte alignment of struct.
 	 * In other words, returns the maximum size of primtive value
 	 * declared in the struct.
 	 * If nested structes are present, their alignment is taken into

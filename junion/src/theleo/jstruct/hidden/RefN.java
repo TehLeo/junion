@@ -26,65 +26,46 @@
  */
 package theleo.jstruct.hidden;
 
-/**
- *
- * @author Juraj Papp
- */
-public class Hyb1 implements AutoCloseable {
-	public final long base;
-	public final long length;
-	public final long structSize;
-	public final int hybridSize;
-	public final int step;
+public class RefN {
+	
+	public final Ref1 owner;
+	public final long[] lengthN;
 
-	public final AutoHybrid owner;
-	public final Object[] hybridData;
-	public Hyb1(long base, long length, long strSize, int hybridSize) {
-		this.base = base;
-		this.length = length;
-		this.structSize = strSize;
-		this.hybridSize = hybridSize;
-		this.hybridData = new Object[(int)(length*hybridSize)];
-		this.step = 1;
-		this.owner = (AutoHybrid)this;
-	}
-	public Hyb1(AutoHybrid owner, long base, long length, long strSize, int step) {
-		this.base = base;
-		this.length = length;
-		this.structSize = strSize;
-		this.hybridSize = owner.hybridSize;
-		this.hybridData = owner.hybridData;
+	public RefN(Ref1 owner, long... len) {
 		this.owner = owner;
-		this.step = step;
+		this.lengthN = len;
 	}
 	
-	public void free() {
-				
-	}
-	
-	public final long getIndex(int i) {
-		if(i < 0 || i >= length)
-//		if(Long.compareUnsigned(i, length) >= 0)
-			throw new IndexOutOfBoundsException(Integer.toString(i));
-		return base + i * structSize;
-	}
-	public final long getIndex(long i) {
-		if(i < 0 || i >= length)
-//		if(Long.compareUnsigned(i, length) >= 0)
-			throw new IndexOutOfBoundsException(Long.toString(i));
-		return base + i * structSize;
-	}
-	
-	public final long getLength(int dim) { return length; }
-	
-	@Override
-	public final void close() {
-		free();
+	public final long getIndex(int... index) {
+		//y+x*lengthY
+		//Address = Base + ((depthindex*col_size+colindex) * row_size + rowindex) * Element_Size
+		//A[depth] [col] [row]
+		
+		long sum = index[0];
+		for(int i = 1; i < index.length; i++) 
+			sum = index[i] + sum*lengthN[i];
+		
+		return owner.getIndex(sum);
+		
+//		long sum = index[index.length-1];
+//		for(int i = index.length-2; i >= 0; i--) 
+//			sum = index[i] + sum*lengthN[i];
+//		
+//		return owner.getIndex(sum);
 	}
 
-	@Override
-	public String toString() {
-		return "StructArray";
+	public final long getIndex(long... index) {
+		long sum = index[0];
+		for(int i = 1; i < index.length; i++) 
+			sum = index[i] + sum*lengthN[i];
+		
+		return owner.getIndex(sum);
 	}
 	
+	public final long getLength(int dim) { return lengthN[dim]; }
+	public final long getCapacity() { 
+		long sum = lengthN[0];
+		for(int i = 1; i < lengthN.length; i++) sum *= lengthN[i];
+		return sum;
+	}
 }

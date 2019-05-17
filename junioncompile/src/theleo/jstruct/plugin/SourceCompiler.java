@@ -54,7 +54,7 @@ import theleo.jstruct.plugin.ecj.Translator;
  * @author Juraj Papp
  */
 public class SourceCompiler {
-	public static final String JUNION_VERSION = "1.1.1";
+	public static final String JUNION_VERSION = "1.2.1";
 
 	public static class Args {
 		public static boolean systemExitOnSuccess = true;
@@ -71,6 +71,9 @@ public class SourceCompiler {
 
 		
 		public Args(String[] args) throws Exception {
+			
+			String splitRegex = "[" + File.pathSeparatorChar + "]";
+			
 			for(int i = 0; i < args.length; i++) {
 				boolean hasNext = i+1 < args.length;
 				String str = args[i].trim();
@@ -91,14 +94,14 @@ public class SourceCompiler {
 					case "-cp":
 						if(!hasNext) throw new IllegalArgumentException("Classpath not specified! -cp <path:path2...>");
 						String cp = trimQuotes(args[++i]);
-						classpath = cp.split("[;:]");
+						classpath = cp.split(splitRegex);
 						break;
 					case "-inpath":
 					case "-inpaths":
 					case "-sourcepath":
 						if(!hasNext) throw new IllegalArgumentException("Source directory not specified!");
 						String sp = trimQuotes(args[++i]);
-						sourcepath = sp.split("[;:]");
+						sourcepath = sp.split(splitRegex);
 						break;
 					case "-out":
 					case "-outpath":
@@ -114,7 +117,7 @@ public class SourceCompiler {
 					case "-sourcefiles":
 						if(!hasNext) throw new IllegalArgumentException("Source directory not specified!");
 						String sf = trimQuotes(args[++i]);
-						sourcefiles = sf.split("[;:]");
+						sourcefiles = sf.split(splitRegex);
 						break;
 					case "-incrementalsource":
 						if(!hasNext) throw new IllegalArgumentException("Source directory not specified!");
@@ -223,7 +226,7 @@ public class SourceCompiler {
 				throw new IllegalArgumentException("Output path: " + outpathFile + " is not a directory.");
 			}
 			
-			ASTParser parser = ASTParser.newParser(AST.JLS10);
+			ASTParser parser = ASTParser.newParser(AST.JLS12);
 			
 			parser.setKind(ASTParser.K_COMPILATION_UNIT);
 			parser.setResolveBindings(true);
