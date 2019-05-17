@@ -26,14 +26,12 @@
  */
 package theleo.jstruct.plugin.ecj;
 
-import com.sun.source.tree.MethodInvocationTree;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import org.eclipse.jdt.core.dom.*;
-import theleo.jstruct.plugin.Log;
 import theleo.jstruct.plugin.ecj.StructCache.*;
 import static theleo.jstruct.plugin.ecj.StructCache.padding;
 
