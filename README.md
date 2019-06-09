@@ -1,5 +1,5 @@
 (More Information available at this project's [website](https://tehleo.github.io/junion/))
-(Current version [1.2.1 (pre-release)](https://github.com/TehLeo/junion/releases))
+(Current version [1.2.2 EA (Early-Access)](https://github.com/TehLeo/junion/releases))
 # Project JUnion
 [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/JUnionChat/Lobby)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.tehleo/junion/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.tehleo/junion)
@@ -88,8 +88,9 @@ You can do so [via PayPap](https://www.paypal.me/JurajPapp)
 
 ## News & Info
 
-Version 1.2.1 pre-release is now acessible [here](https://github.com/TehLeo/junion/releases)
+Version 1.2.2 EA (Early-Access) is now acessible [here](https://github.com/TehLeo/junion/releases)
+Documentation and tests are now planned to finalize 1.2.x release.
 
-Roadmap to JUnion 1.2.1 has been announced [here](https://github.com/TehLeo/junion/issues/3) 
+Roadmap to JUnion 1.2.x has been announced [here](https://github.com/TehLeo/junion/issues/3) 
 
 Wiki has been created and can be accessed [here](https://tehleo.github.io/junion/wiki/index.html)
