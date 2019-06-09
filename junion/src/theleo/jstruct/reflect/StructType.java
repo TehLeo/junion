@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Juraj Papp
+ * Copyright (c) 2019, Juraj Papp
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -24,16 +24,75 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package theleo.jstruct;
+package theleo.jstruct.reflect;
+
+import theleo.jstruct.StructHeapType;
 
 /**
- *
+ * 
+ * 
  * @author Juraj Papp
  */
-public class WildPointerException extends RuntimeException {
+public final class StructType {
+	public final Class cls;
+	public final StructHeapType type;
+	public final int size;
+	public final int align;
+	public final int objectCount;
+	public final int[] objectOffset;
 
-	public WildPointerException() {
-		super();
+	public StructType(Class cls, StructHeapType type, int size, int align, int objectCount, int[] offsets) {
+		this.cls = cls;
+		this.type = type;
+		this.size = size;
+		this.align = align;
+		this.objectCount = objectCount;
+		this.objectOffset = offsets;
+	}
+
+	public Class toClass() {
+		return cls;
+	}
+
+	@Override
+	public String toString() {
+		return "struct " + cls.getName();
+	}
+	
+	public boolean isAligned(long addr) {
+		return (addr&(align-1))==0;
+	}
+	
+	
+	public static class StructNotFoundException extends RuntimeException {
+		public StructNotFoundException() {
+
+		}
+		public StructNotFoundException(String msg) {
+			super(msg);
+		}
+	
+	}
+	public static StructType forName(String className) throws StructNotFoundException {
+		try {
+			return forClass(Class.forName(className));
+		}
+		catch(ClassNotFoundException e) {
+			throw new StructNotFoundException(e.getMessage());
+		}
+	}
+	public static StructType forClass(Class cls) throws SecurityException {
+		try {
+			Object o = cls.getDeclaredField("$STRUCT_TYPE$").get(null);
+			if(o instanceof StructType) {
+				return (StructType)o;
+			}
+			throw new StructNotFoundException();
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+			throw new StructNotFoundException(e.getMessage());
+		}
 	}
 	
 }

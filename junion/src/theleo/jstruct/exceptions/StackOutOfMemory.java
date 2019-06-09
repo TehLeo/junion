@@ -24,67 +24,18 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package theleo.jstruct.hidden;
+package theleo.jstruct.exceptions;
+
+import theleo.jstruct.hidden.Mem0;
 
 /**
  *
  * @author Juraj Papp
  */
-public class Hyb1 implements AutoCloseable {
-	public final long base;
-	public final long length;
-	public final long structSize;
-	public final int hybridSize;
-	public final int step;
+public class StackOutOfMemory extends Error {
 
-	public final AutoHybrid owner;
-	public final Object[] hybridData;
-	public Hyb1(long base, long length, long strSize, int hybridSize) {
-		this.base = base;
-		this.length = length;
-		this.structSize = strSize;
-		this.hybridSize = hybridSize;
-		this.hybridData = new Object[(int)(length*hybridSize)];
-		this.step = 1;
-		this.owner = (AutoHybrid)this;
-	}
-	public Hyb1(AutoHybrid owner, long base, long length, long strSize, int step) {
-		this.base = base;
-		this.length = length;
-		this.structSize = strSize;
-		this.hybridSize = owner.hybridSize;
-		this.hybridData = owner.hybridData;
-		this.owner = owner;
-		this.step = step;
-	}
-	
-	public void free() {
-				
-	}
-	
-	public final long getIndex(int i) {
-		if(i < 0 || i >= length)
-//		if(Long.compareUnsigned(i, length) >= 0)
-			throw new IndexOutOfBoundsException(Integer.toString(i));
-		return base + i * structSize;
-	}
-	public final long getIndex(long i) {
-		if(i < 0 || i >= length)
-//		if(Long.compareUnsigned(i, length) >= 0)
-			throw new IndexOutOfBoundsException(Long.toString(i));
-		return base + i * structSize;
-	}
-	
-	public final long getLength(int dim) { return length; }
-	
-	@Override
-	public final void close() {
-		free();
-	}
-
-	@Override
-	public String toString() {
-		return "StructArray";
+	public StackOutOfMemory() {
+		super("Stack Out Of Memory ");
 	}
 	
 }

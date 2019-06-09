@@ -26,82 +26,140 @@
  */
 package theleo.jstruct.hidden;
 
-import theleo.jstruct.StackOutOfMemory;
+import theleo.jstruct.ArrayType;
+import theleo.jstruct.Mem;
+import theleo.jstruct.exceptions.StackOutOfMemory;
+import theleo.jstruct.reflect.StructType;
 
 /**
  *
  * @author Juraj Papp
  */
 public final class Stack {
-	public long base, baseEnd;
+	public long returnAddress;
 	public long position;
-	private long pointer;
-	public int positionObjs;
-	public int hybridIndex;
-	public Object[] hybridData;
-	public Stack(long size, int objSize) {
-		pointer = Mem0.u.allocateMemory(size);
-		hybridData = new Object[objSize];
-		hybridIndex = Mem0.allocObjectArray(hybridData);
-		base = pointer;
-		baseEnd = pointer + size;
-		position = pointer;
-		positionObjs = 0;
+	public int objectIndex;
+	
+	public Object[] objectData;
+	
+	public long maxSize;
+	public int maxObjSize;
+	public int returnObjIndex;
+	
+	public R1 data;
+	public R1.A dataA;
+	public R1.B dataB;
+	public R1.C dataC;
+	public R1.D dataD;
+	public R1.F dataF;
+	public R1.I dataI;
+	public R1.L dataL;
+	public R1.N dataN;	
+	public R1.S dataS;
+	
+	public Stack(long size, long maxSize, int objSize, int maxObjSize) {
+		this.maxSize = maxSize;
+		this.maxObjSize = maxObjSize;
+
+		R1 r = (R1)Mem0.AA.allocateStack(size, objSize, null);
+		data = r;
+		objectData = r.ref;
+		dataA = R1.wrapA(r);
+		dataB = R1.wrapB(r);
+		dataC = R1.wrapC(r);
+		dataD = R1.wrapD(r);
+		dataF = R1.wrapF(r);
+		dataI = R1.wrapI(r);
+		dataL = R1.wrapL(r);
+		dataN = R1.wrapN(r);
+		dataS = R1.wrapS(r);
 	}
-	public final long getBase() { return base;}
-	public long get(int bytes) {
-		long l = position;
-		long add = l+bytes;
-		if(add >= baseEnd) grow(); 
+		
+	public R1 array(StructType type, long items) {
+		long bytes = Mem.roundUp8(items*type.size);
+		int objs = (int)(items*type.objectCount);
+
+		long add = position+bytes;
+		int addObjs = objectIndex+objs;
+		if(add > data.longLength || addObjs > objectData.length) { 
+			grow(add, addObjs); 
+			add=bytes;
+			addObjs = objs;
+		}
+		
+		R1 r = R1.create(type, null, null, items, data.base+position, data, data.ref, objectIndex);
 		position = add;
-		return l;
+		objectIndex = addObjs;
+		return r;
 	}
-	private void grow() {
-		long size = (baseEnd-base)<<1;
-		if(size > Mem0.STACK_MAX_SIZE) throw new StackOutOfMemory();
-		pointer = Mem0.u.reallocateMemory(pointer, size);
-		base = pointer;
-		baseEnd = pointer + size;
-		position = pointer;
+	private void grow(long bytes, int objs) {
+		long size = Math.max(8, data.longLength);
+		while(size > 0 && size < bytes) size <<= 1;
+		if(size <= 0 || size > maxSize) throw new StackOutOfMemory();
+		
+		int sizeObjs = Math.max(8, objectData.length);
+		while(sizeObjs > 0 && sizeObjs < objs) sizeObjs <<= 1;
+		if(sizeObjs <= 0 || sizeObjs > maxObjSize) throw new StackOutOfMemory();
+
+		R1 r = (R1)Mem0.AA.allocateStack(size, sizeObjs, null);
+		data = r;
+		objectData = r.ref;
+		dataA = R1.wrapA(r);
+		dataB = R1.wrapB(r);
+		dataC = R1.wrapC(r);
+		dataD = R1.wrapD(r);
+		dataF = R1.wrapF(r);
+		dataI = R1.wrapI(r);
+		dataL = R1.wrapL(r);
+		dataN = R1.wrapN(r);
+		dataS = R1.wrapS(r);
+		
+		position = 0;
+		objectIndex = 0;
 	}
+	
+	public long get(int bytes, int objs) {
+		long pos = position;
+		int objPos = objectIndex;
+		long add = pos+bytes;
+		int addObjs = objPos+objs;
+		if(add > data.longLength || addObjs > objectData.length) { 
+			grow(add, addObjs); 
+			position = bytes;
+			objectIndex = objs;
+			returnObjIndex = 0;
+			return 0;
+		}
+		position = add;
+		objectIndex = addObjs;
+		returnObjIndex = objPos;
+		return pos;
+	} 
+	
+	
+	public final long getBase() { return data.base; }
+	public long get(int bytes) {
+		long pos = position;
+		long add = pos+bytes;
+		if(add > data.longLength) {
+			grow(add, 0); 
+			position = bytes;
+			return 0;
+		}
+		position = add;
+		return pos;
+	}
+
 	public void pop(long p) {
-		position = p;
-	}
-	public int getObj(int objs) {
-		int i = positionObjs;
-		int add = i+objs;
-		if(add >= hybridData.length) growArray();
-		positionObjs = add;
-		return i;
-	}
-	private void growArray() {
-		Mem0.stackGrowArray(this);
+		position = Math.min(position, p);
 	}
 	public void pop(long p, int obj) {
-		position = p; 
-		int to = positionObjs;
-		for(int i = obj; i < to; i++) hybridData[i] = null;
-		positionObjs = obj;
-	}
-	@Override
-	protected void finalize()  {
-		long value = Mem0.u.getAndSetLong(this, PTR_OFFSET, 0);
-		if(value != 0) {
-			Mem0.u.freeMemory(value);
-			Mem0.freeObjectArray(hybridIndex);
-			hybridIndex = -1;
-		}	
-	}
-	private static final long PTR_OFFSET;
-	static {
-		long val;
-		try {
-			val = Mem0.u.objectFieldOffset(Stack.class.getDeclaredField("pointer"));
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			val = 32L;
-			throw new IllegalArgumentException("Could not initialize");
+		position = Math.min(position, p);
+		if(obj < objectIndex) {
+			int to = objectIndex;
+			for(int i = obj; i < to; i++) objectData[i] = null;
+			objectIndex = obj;
 		}
-		PTR_OFFSET = val;
 	}
+	
 }

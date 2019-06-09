@@ -24,10 +24,40 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package theleo.jstruct.tests;
+package theleo.jstruct.allocator;
 
-
-
-public class TestFile2 {
+/**
+ * Allocator interface.
+ * 
+ * The implementation of this interface is implements
+ * a thread-safe allocator or sigle-threaded allocator.
+ *
+ * @author Juraj Papp
+ */
+public interface Allocator {
+	/**
+	 * Initialize allocator.
+	 * 
+	 * If called multiple times, ignore without throwing exception. 
+	 */
+	public void initializeAllocator();
+	/**
+	 * Cleanup allocator.
+	 * 
+	 * If called multiple times, ignore without throwing exception. 
+	 */
+	public void cleanupAllocator();
+	/**
+	 * 
+	 * @param size number of bytes to allocate
+	 * @return pointer to allocated memory
+	 */
+	public long allocateMemory(long size);
+	/**
+	 * 
+	 * @param addr address previously returned by allocateMemory 
+	 * @return 
+	 */
+	public void freeMemory(long addr);
 
 }

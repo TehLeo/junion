@@ -268,17 +268,18 @@ public class SourceCompiler {
 				public void acceptAST(String sourceFilePath, CompilationUnit ast) {
 					try {
 						Log.err("Source " + sourceFilePath);
+						
+						Document doc = new Document(new String(Files.readAllBytes(Paths.get(sourceFilePath))));
 
 						StructCache.currentAST = ast.getAST();
 						ast.recordModifications();
-						Translator translator = new Translator(ast);
+						Translator translator = new Translator(ast, doc, sourceFilePath);
 						ast.accept(translator);
 						
 //						ASTFlattener flat = new ASTFlattener();
 //						ASTFlattener flat = new ReadableFlattener(ast);
 //						ast.accept(flat);
 						
-						Document doc = new Document(new String(Files.readAllBytes(Paths.get(sourceFilePath))));
 						TextEdit te = ast.rewrite(doc, null);
 						te.apply(doc);
 						String result = doc.get();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Juraj Papp
+ * Copyright (c) 2019, Juraj Papp
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -24,16 +24,24 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package theleo.jstruct;
+package theleo.jstruct.exceptions;
 
 /**
  *
  * @author Juraj Papp
  */
-public class NullPointerDereference extends RuntimeException {
-
-	public NullPointerDereference() {
+public class StructReferenceTypeMismatch extends RuntimeException{
+	public StructReferenceTypeMismatch() {
 		super();
+	}
+	public StructReferenceTypeMismatch(String msg) {
+		super(msg);
+	}
+	public static void throwException() {
+		throw new StructReferenceTypeMismatch();
+	}
+	public static void throwException(String msg) {
+		throw new StructReferenceTypeMismatch(msg);
 	}
 	
 }

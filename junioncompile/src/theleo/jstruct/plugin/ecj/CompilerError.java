@@ -61,11 +61,13 @@ public class CompilerError extends RuntimeException {
 	public static Action STRUCT_ORDER_MISMATCH = new Action("Struct: %s field order is different.", ActionType.ERROR);
 	
 	public static Action STRUCT_FIELD_NOT_FOUND = new Action("Struct field not found: %s", ActionType.ERROR);
+	public static Action STRUCT_COPY_TYPE_MISMATCH = new Action("Struct of type %s cannot be copied into struct of type %s", ActionType.ERROR);
+	public static Action STRUCT_CONVERT_TO_OBJECT = new Action("Struct cannot be converted to object", ActionType.ERROR);
 
 	public static Action TYPE_NOT_FOUND = new Action("Type not found: %s", ActionType.ERROR);
 	public static Action UNCATEGORIZED = new Action("Uncategorized: %s", ActionType.INFO);
 	
-	
+	public static Action UNCATEGORIZED_ERROR = new Action("Error: ", ActionType.ERROR);
 
 	public CompilerError(String msg) {
 		super(msg);
@@ -90,5 +92,17 @@ public class CompilerError extends RuntimeException {
 			case ERROR:				
 				throw new CompilerError(String.format(action.message, params));
 		}
+	}
+	public static CompilerError get(String errLine, Action action, Object... params) {
+		System.err.print(action.type);
+		System.err.print(": ");
+		System.err.printf(action.message, params);
+		System.err.println();
+		
+		System.err.println();
+		System.err.println(errLine);
+		System.err.println();
+		
+		return new CompilerError(String.format(action.message, params));
 	}
 }

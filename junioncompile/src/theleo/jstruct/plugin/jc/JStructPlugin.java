@@ -64,6 +64,7 @@ import javax.lang.model.element.NestingKind;
 import javax.tools.JavaFileObject;
 import javax.tools.ToolProvider;
 import org.eclipse.jdt.core.dom.ASTParser;
+import org.eclipse.jdt.core.dom.Comment;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.FileASTRequestor;
 import org.eclipse.jdt.core.dom.IBinding;
@@ -218,25 +219,25 @@ public class JStructPlugin implements Plugin {
 
 		@Override
 		public void compile(List<JavaFileObject> sourceFileObjects, List<String> classnames, Iterable<? extends Processor> processors) {
-			Log.err("JAVA COMPILER WRAPPER " + sourceFileObjects.size());
-			Log.err("Class Names " + classnames + ", " + classnames.size());
+			Log.err("JAVA COMPILER WRAPPER " , sourceFileObjects.size());
+			Log.err("Class Names " , classnames + ", " + classnames.size());
 			
 			Log.err("DJAVA_ENDORSED_DIRS " + options.get(Option.DJAVA_ENDORSED_DIRS));
-			Log.err("DJAVA_EXT_DIRS " + options.get(Option.DJAVA_EXT_DIRS));
-			Log.err("ENDORSEDDIRS " + options.get(Option.ENDORSEDDIRS));
-			Log.err("EXTDIRS " + options.get(Option.EXTDIRS));
-			Log.err("SourcePath " + options.get(Option.SOURCEPATH));
-			Log.err("SourceFile " + options.get(Option.SOURCEFILE));
-			Log.err("Source " + options.get(Option.SOURCE));
-			Log.err("D " + options.get(Option.D));
-			Log.err("CP " + options.get(Option.CP));
-			Log.err("BOOTCLASSPATH " + options.get(Option.BOOTCLASSPATH));
-			Log.err("XBOOTCLASSPATH " + options.get(Option.XBOOTCLASSPATH));
-			Log.err("XBOOTCLASSPATH_PREPEND " + options.get(Option.XBOOTCLASSPATH_PREPEND));
-			Log.err("XBOOTCLASSPATH_APPEND " + options.get(Option.XBOOTCLASSPATH_APPEND));
-			Log.err("CLASSPATH " + options.get(Option.CLASSPATH));
-			Log.err("PROCPATH " + options.get(Option.PROCESSORPATH));
-			Log.err("VERSION " + options.get(Option.VERSION));
+			Log.err("DJAVA_EXT_DIRS " , options.get(Option.DJAVA_EXT_DIRS));
+			Log.err("ENDORSEDDIRS " , options.get(Option.ENDORSEDDIRS));
+			Log.err("EXTDIRS " , options.get(Option.EXTDIRS));
+			Log.err("SourcePath " , options.get(Option.SOURCEPATH));
+			Log.err("SourceFile " , options.get(Option.SOURCEFILE));
+			Log.err("Source " , options.get(Option.SOURCE));
+			Log.err("D " , options.get(Option.D));
+			Log.err("CP " , options.get(Option.CP));
+			Log.err("BOOTCLASSPATH " , options.get(Option.BOOTCLASSPATH));
+			Log.err("XBOOTCLASSPATH " , options.get(Option.XBOOTCLASSPATH));
+			Log.err("XBOOTCLASSPATH_PREPEND " , options.get(Option.XBOOTCLASSPATH_PREPEND));
+			Log.err("XBOOTCLASSPATH_APPEND " , options.get(Option.XBOOTCLASSPATH_APPEND));
+			Log.err("CLASSPATH " , options.get(Option.CLASSPATH));
+			Log.err("PROCPATH " , options.get(Option.PROCESSORPATH));
+			Log.err("VERSION " , options.get(Option.VERSION));
 			
 //			for(String o : options.keySet())
 //				Log.err("Ops " + o + ", " + options.get(o));
@@ -263,8 +264,8 @@ public class JStructPlugin implements Plugin {
 				for(int i = 0; i < sourceFileObjects.size(); i++) {
 
 						JavaFileObject jfo = sourceFileObjects.get(i);
-						Log.err("JAVA COMPILER WRAPPER " + jfo + ", " + jfo.getClass());
-						Log.err(" SIMPLE NAME " + jfo.getName());
+						Log.err("JAVA COMPILER WRAPPER ", jfo + ", " + jfo.getClass());
+						Log.err(" SIMPLE NAME ", jfo.getName());
 						
 						if(jfo.getKind() == JavaFileObject.Kind.SOURCE) {
 							CharSequence seq = jfo.getCharContent(true);
@@ -272,7 +273,7 @@ public class JStructPlugin implements Plugin {
 							wf.setContent(seq);
 							wf.setPackageName(SourceCompiler.extractPackageName(seq));
 							
-							Log.err(" PACKAGE " + wf.packageName);
+							Log.err(" PACKAGE ", wf.packageName);
 							
 							sourceFiles.put(new File(jfo.toUri()).getCanonicalPath(), wf);
 							
@@ -283,8 +284,8 @@ public class JStructPlugin implements Plugin {
 								}
 								else {
 									int dot1 = 1+SourceCompiler.count(wf.packageName, '.');
-									Log.err("DOTS " + dot1);
-									Log.err("F~ILE  " + file);
+									Log.err("DOTS ", dot1);
+									Log.err("F~ILE  ", file);
 									for(int n = 0; n < dot1 && file != null; n++)
 										file = file.getParentFile();
 									if(file != null) sourcePathMap.add(file.getCanonicalPath());
@@ -299,7 +300,7 @@ public class JStructPlugin implements Plugin {
 				
 //				org.eclipse.jdt.core.ICompilationUnit[] units = from(javaFiles);
 				String sourcePaths[] = sourcePathMap.toArray(new String[sourcePathMap.size()]);
-				Log.err("SOURCE PATHS " + Arrays.toString(sourcePaths));
+				Log.err("SOURCE PATHS ", Arrays.toString(sourcePaths));
 
 				String sourceVersion = options.get(Option.SOURCE);
 				
@@ -312,7 +313,7 @@ public class JStructPlugin implements Plugin {
 				URL[] urls = new URL[classPaths.length];
 				for(int i = 0; i < classPaths.length; i++) {
 					urls[i] = Paths.get(classPaths[i]).toUri().toURL();
-					Log.err("URL " + urls[i]);
+					Log.err("URL ", urls[i]);
 				}
 
 				StructCache.loader = new URLClassLoader(urls, ClassLoader.getSystemClassLoader());
@@ -322,21 +323,26 @@ public class JStructPlugin implements Plugin {
 						super.acceptAST(sourceFilePath, comp); //To change body of generated methods, choose Tools | Templates.
 					
 						try {
-							Log.err("Source " + sourceFilePath);
+							Log.err("Source ", sourceFilePath);
 
 							StructCache.currentAST = comp.getAST();
 							
-							comp.recordModifications();
-							Translator translator = new Translator(comp);
-							comp.accept(translator);
 							
 							
 							
 							WrappedSourceFile ws = sourceFiles.get(sourceFilePath);
-							Log.err("WS " + ws);
+							Log.err("WS ", ws);
 							if(ws != null) {
-								//ws.content//
 								Document doc = new Document(ws.content.toString());
+								
+
+								
+								comp.recordModifications();
+								Translator translator = new Translator(comp, doc, sourceFilePath);
+								comp.accept(translator);
+							
+							
+								//ws.content//
 								TextEdit te = comp.rewrite(doc, null);
 								te.apply(doc);
 								String result = doc.get();
@@ -347,7 +353,7 @@ public class JStructPlugin implements Plugin {
 //								String result = flat.getResult();
 								ws.setContent(result);
 
-								Log.err("Source " + source);
+								Log.err("Source ", source);
 								Log.err(result);
 							
 							}
@@ -375,7 +381,7 @@ public class JStructPlugin implements Plugin {
 				};	
 				
 				String[] sourceInputFiles = sourceFiles.keySet().toArray(new String[sourceFiles.size()]);
-				Log.err("INPUT FILES " + Arrays.toString(sourceInputFiles));
+				Log.err("INPUT FILES ", Arrays.toString(sourceInputFiles));
 				
 //				org.eclipse.jdt.core.ICompilationUnit[] compilationUnits = new org.eclipse.jdt.core.ICompilationUnit[units.length];
 //				System.arraycopy(units, 0, compilationUnits, 0, units.length);

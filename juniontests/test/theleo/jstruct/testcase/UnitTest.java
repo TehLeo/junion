@@ -31,9 +31,10 @@ import java.nio.ByteOrder;
 import org.junit.Test;
 import static org.junit.Assert.*;
 import theleo.jstruct.Mem;
-import theleo.jstruct.NullPointerDereference;
+import theleo.jstruct.exceptions.NullPointerDereference;
 import theleo.jstruct.Reference;
 import theleo.jstruct.Struct;
+import theleo.jstruct.reflect.StructType;
 
 /**
  *
@@ -46,7 +47,7 @@ public class UnitTest {
 	
 	@Struct
 	public static class Str1 {
-		public boolean _boolean;
+		public boolean _boolean; 
 		public byte _byte;
 		public short _short;
 		public char _char;
@@ -163,7 +164,7 @@ public class UnitTest {
 		
 		ByteBuffer a = ByteBuffer.allocateDirect(10*Mem.sizeOf(Vec3i.class)).order(ByteOrder.nativeOrder());
 
-		Vec3i[] arr = Mem.wrap(a, Mem.sizeOf(Vec3i.class));
+		Vec3i[] arr = Mem.wrap(a, StructType.forClass(Vec3i.class));
 		assertTrue(arr.length == 10);
 		for(int i = 0; i < arr.length; i++) {
 			arr[i].x = i*3;
@@ -227,8 +228,12 @@ public class UnitTest {
 	Node testReferencesNode;
 	@Test
 	public void testReferences() {
-		//References take 8 bytes, 8+8+4=20 -> (align to 8) 24
-		assertTrue(Mem.sizeOf(Line3i.class) == 24);
+		//References are made of (Object, long),
+		//8 bytes is reserved to store object offset (single object offset per struct)
+		//Thus storage is: 8+8+8+4 = 28
+		//      -> (align to 8) 32
+		//
+		assertTrue(Mem.sizeOf(Node.class) == 32);
 		
 		Runnable run = new Runnable() {
 			Node[] nodes = new Node[10];
@@ -240,18 +245,11 @@ public class UnitTest {
 
 				Node root = nodes[0];
 
-				try {
-					//derefrencing a null reference throws NullPointerDereference exception
-					Node l = nodes[0].left;
-					fail();
-				}
-				catch(NullPointerDereference e) {}
+				assertTrue(Mem.isNull(nodes[0].left));
+				
 
-				try {
-					Node l = root.right;
-					fail();
-				}
-				catch(NullPointerDereference e) {}
+				Node l2 = root.right;
+				assertTrue(Mem.isNull(l2));				
 
 				//To check is a reference is null Mem.isNull(...) is used
 				assertTrue(Mem.isNull(root.left));
@@ -271,26 +269,18 @@ public class UnitTest {
 				rL.left = root;
 				root.right.left = root;
 
-				assertTrue(root.left.left == root.right.left);
+				assertTrue(Mem.refEquals(root.left.left,root.right.left));
 				assertTrue(root.left.left.right.left.value == 0);
 
-				try {
-					Node n = testReferencesNode;
-					fail();
-				}
-				catch(NullPointerDereference e) {}
-
-				try {
-					Node n = testReferencesNodeStatic;
-					fail();
-				}
-				catch(NullPointerDereference e) {}
-
+				assertTrue(Mem.isNull(testReferencesNode));
+				assertTrue(Mem.isNull(testReferencesNodeStatic));
+				
+				
 				testReferencesNode = root;
 				testReferencesNodeStatic = root.left;
 
 				assertTrue(testReferencesNode.value == root.value);
-				assertTrue(testReferencesNodeStatic == root.left);
+				assertTrue(Mem.refEquals(testReferencesNodeStatic, root.left));
 				
 				System.out.println("Ok testReferences");
 			}
@@ -377,7 +367,7 @@ public class UnitTest {
 		Val y = new Val(6);
 		Val z = new Val(7);
 		
-		Vec3i v = Mem.stack(Vec3i.class);
+		Vec3i v = Mem.stackInit(Vec3i.class);
 		{v.x = x.getInt(); v.y = y.getInt(); v.z = z.getInt();}
 		
 		assertTrue(v.x == x.getInt());
@@ -398,7 +388,7 @@ public class UnitTest {
 	
 	@Test
 	public void testPassByReference() {
-		Vec3i v = Mem.stack(Vec3i.class);
+		Vec3i v = Mem.stackInit(Vec3i.class);
 		{v.x = 1; v.y = 2; v.z = 4;}
 		
 		assertTrue(add(v) == 7);
@@ -425,7 +415,7 @@ public class UnitTest {
 	
 	@Test
 	public void testPrefixPostfixOperators() {
-		Vec3i v = Mem.stack(Vec3i.class);
+		Vec3i v = Mem.stackInit(Vec3i.class);
 		{v.x = 10; v.y = 2; v.z = 4;}
 		
 		assertTrue(v.x++ == 10);
@@ -450,7 +440,7 @@ public class UnitTest {
 	
 	@Test
 	public void testAssignmentOperators() {
-		Str1 v = Mem.stack(Str1.class);
+		Str1 v = Mem.stackInit(Str1.class);
 		{v._boolean = false; v._byte = 0;
 		v._char = 0; v._double = 0; v._float = 0;
 		v._int = 0; v._long = 0; v._short = 0;}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Juraj Papp
+ * Copyright (c) 2019, Juraj Papp
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -24,21 +24,21 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package theleo.jstruct.plugin;
+package theleo.jstruct;
+
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
  *
  * @author Juraj Papp
  */
-public class Log {
-	public static boolean enabled = false;
-	public static void err(Object o) {
-		if(enabled) System.err.println(o);
-	}
-	public static void err(Object a, Object b) {
-		if(enabled) {
-			System.err.print(a);
-			System.err.println(b);
-		}
-	}
+@Documented
+@Retention(RetentionPolicy.CLASS)
+@Target(ElementType.TYPE_USE)
+public @interface DirectBuffer {
+
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Juraj Papp
+ * Copyright (c) 2019, Juraj Papp
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -24,48 +24,26 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package theleo.jstruct.hidden;
+package theleo.jstruct;
 
-public class HybN {
-	
-	public final Hyb1 owner;
-	public final long[] lengthN;
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-	public HybN(Hyb1 owner, long... len) {
-		this.owner = owner;
-		this.lengthN = len;
-	}
-	
-	public final long getIndex(int... index) {
-		//y+x*lengthY
-		//Address = Base + ((depthindex*col_size+colindex) * row_size + rowindex) * Element_Size
-		//A[depth] [col] [row]
-		
-		long sum = index[0];
-		for(int i = 1; i < index.length; i++) 
-			sum = index[i] + sum*lengthN[i];
-		
-		return owner.getIndex(sum);
-		
-//		long sum = index[index.length-1];
-//		for(int i = index.length-2; i >= 0; i--) 
-//			sum = index[i] + sum*lengthN[i];
-//		
-//		return owner.getIndex(sum);
-	}
-
-	public final long getIndex(long... index) {
-		long sum = index[0];
-		for(int i = 1; i < index.length; i++) 
-			sum = index[i] + sum*lengthN[i];
-		
-		return owner.getIndex(sum);
-	}
-	
-	public final long getLength(int dim) { return lengthN[dim]; }
-	public final long getCapacity() { 
-		long sum = lengthN[0];
-		for(int i = 1; i < lengthN.length; i++) sum *= lengthN[i];
-		return sum;
-	}
+/**
+ *
+ * @author Juraj Papp
+ */
+@Documented
+@Retention(RetentionPolicy.CLASS)
+@Target(ElementType.TYPE_USE)
+public @interface Direct {
+	/**
+	 * Zero out the newly allocated memory.
+	 * @return 
+	 */
+	boolean zero() default true;
 }
+	

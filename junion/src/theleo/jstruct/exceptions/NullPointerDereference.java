@@ -24,57 +24,27 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package theleo.jstruct.hidden;
+package theleo.jstruct.exceptions;
 
 /**
  *
  * @author Juraj Papp
  */
-public class Ref1 implements AutoCloseable {
-	public final long base;
-	public final long length;
-	public final long structSize;	
-	public final Object owner;
-	public Ref1(long base, long length, long strSize) {
-		this.base = base;
-		this.length = length;
-		this.structSize = strSize;
-		this.owner = this;
-	}
-	public Ref1(Object owner, long base, long length, long strSize) {
-		this.base = base;
-		this.length = length;
-		this.structSize = strSize;
-		this.owner = owner;
-	}
-	
-	public void free() {
-				
-	}
-	
-	public final long getIndex(int i) {
-		if(i < 0 || i >= length)
-//		if(Long.compareUnsigned(i, length) >= 0)
-			throw new IndexOutOfBoundsException(Integer.toString(i));
-		return base + i * structSize;
-	}
-	public final long getIndex(long i) {
-		if(i < 0 || i >= length)
-//		if(Long.compareUnsigned(i, length) >= 0)
-			throw new IndexOutOfBoundsException(Long.toString(i));
-		return base + i * structSize;
-	}
-	
-	public final long getLength(int dim) { return length; }
-	
-	@Override
-	public final void close() {
-		free();
-	}
+public class NullPointerDereference extends RuntimeException {
 
-	@Override
-	public String toString() {
-		return "StructArray";
+	public NullPointerDereference() {
+		super();
 	}
-	
+	public NullPointerDereference(Long l) {
+		super(Long.toString(l));
+	}
+	public NullPointerDereference(String msg) {
+		super(msg);
+	}
+	public static void throwException(String msg) {
+		throw new NullPointerDereference(msg);
+	}
+	public static void throwException(long l) {
+		throw new NullPointerDereference(l);
+	}
 }

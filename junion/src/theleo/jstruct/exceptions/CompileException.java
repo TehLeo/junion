@@ -24,21 +24,16 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package theleo.jstruct.plugin;
+package theleo.jstruct.exceptions;
 
 /**
  *
  * @author Juraj Papp
  */
-public class Log {
-	public static boolean enabled = false;
-	public static void err(Object o) {
-		if(enabled) System.err.println(o);
+public class CompileException extends RuntimeException {
+
+	public CompileException() {
+		super("Not compiled with jstruct.");
 	}
-	public static void err(Object a, Object b) {
-		if(enabled) {
-			System.err.print(a);
-			System.err.println(b);
-		}
-	}
+	
 }

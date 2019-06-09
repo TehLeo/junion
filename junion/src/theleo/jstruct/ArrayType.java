@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Juraj Papp
+ * Copyright (c) 2019, Juraj Papp
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -26,16 +26,52 @@
  */
 package theleo.jstruct;
 
-import theleo.jstruct.hidden.Mem0;
+import theleo.jstruct.hidden.Vars;
 
 /**
  *
  * @author Juraj Papp
  */
-public class StackOutOfMemory extends Error {
 
-	public StackOutOfMemory() {
-		super("Stack Out Of Memory ");
+public enum ArrayType {
+	Byte(Vars.ARRAY_BYTE_BASE_OFFSET, 1),
+	Short(Vars.ARRAY_SHORT_BASE_OFFSET, 2),
+	Char(Vars.ARRAY_CHAR_BASE_OFFSET, 2),
+	Int(Vars.ARRAY_INT_BASE_OFFSET, 4),
+	Float(Vars.ARRAY_FLOAT_BASE_OFFSET, 4),
+	Long(Vars.ARRAY_LONG_BASE_OFFSET, 8),
+	Double(Vars.ARRAY_DOUBLE_BASE_OFFSET, 8),
+	Default(0, 0);
+	
+	public final long base;
+	public final int size;
+	private ArrayType(long base, int size) {
+		this.base = base;
+		this.size = size;
 	}
 	
+	public static ArrayType get(Object array) {
+		if(array instanceof byte[]) {
+			return Byte;
+		}
+		else if(array instanceof short[]) {
+			return Short;
+		}
+		else if(array instanceof char[]) {
+			return Char;
+		}
+		else if(array instanceof int[]) {
+			return Int;
+		}
+		else if(array instanceof float[]) {
+			return Float;
+		}
+		else if(array instanceof long[]) {
+			return Long;
+		}
+		else if(array instanceof double[]) {
+			return Double;
+		}
+		return null;
+	}
 }

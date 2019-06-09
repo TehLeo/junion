@@ -24,21 +24,22 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package theleo.jstruct;
+package theleo.jstruct.allocator;
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import theleo.jstruct.ArrayType;
+import theleo.jstruct.hidden.R1;
+import theleo.jstruct.hidden.Stack;
+import theleo.jstruct.reflect.StructType;
 
 /**
  *
  * @author Juraj Papp
  */
-@Documented
-@Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.METHOD})
-public @interface ReturnStruct {
-	
+public interface ArrayAllocator {
+	public R1 allocateArray(StructType type, long items);
+	public R1 allocateArrayHeap(StructType type, ArrayType array, long items);
+	public R1 allocateArrayDirect(StructType type, boolean zero, long items);
+	public R1 allocateArrayDirectBuffer(StructType type, long items);
+	public R1 allocateArrayStack(Stack s, StructType type, long items);
+	public R1 allocateStack(long items, int objects, Stack stack);
 }

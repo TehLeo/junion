@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Juraj Papp
+ * Copyright (c) 2019, Juraj Papp
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -24,48 +24,21 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package theleo.jstruct.hidden;
+package theleo.jstruct;
+
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
- * 
- * 
- * 
+ *
  * @author Juraj Papp
  */
-public class AutoHybrid extends Hyb1 {
-	private long pointer;
-	int hybridIndex;
+@Documented
+@Retention(RetentionPolicy.CLASS)
+@Target(ElementType.TYPE_USE)
+public @interface Stack {
 	
-	public AutoHybrid(long base, long length, long strSize, int hybridSize) {
-		super(base, length, strSize, hybridSize);
-		this.pointer = base;
-	}
-	public void free() {
-		long value = Mem0.u.getAndSetLong(this, PTR_OFFSET, 0);
-		if(value != 0) {
-			Mem0.freeHybrid(value, hybridIndex);
-			hybridIndex = -1;
-		}				
-	}
-	@Override
-	protected void finalize() throws Throwable {
-		try {
-			free();
-		} finally {
-			super.finalize();
-		}
-	}
-	
-	private static final long PTR_OFFSET;
-	static {
-		long val;
-		try {
-			val = Mem0.u.objectFieldOffset(AutoHybrid.class.getDeclaredField("pointer"));
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			val = 40L;
-			throw new IllegalArgumentException("Could not initialize");
-		}
-		PTR_OFFSET = val;
-	}
 }

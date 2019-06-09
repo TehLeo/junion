@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Juraj Papp
+ * Copyright (c) 2018, Juraj Papp
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -24,40 +24,28 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package theleo.jstruct.tests;
-
-import java.awt.Point;
-import theleo.jstruct.Mem;
-import theleo.jstruct.Struct;
-import theleo.jstruct.hidden.Mem0;
+package theleo.jstruct.exceptions;
 
 /**
  *
  * @author Juraj Papp
  */
-public class TestFile {
-	@Struct
-	public static class Vec3 { 
-		int x, y, z;
-		Point p; 
+public class UnalignedAccessException extends RuntimeException {
+
+	public UnalignedAccessException() {
+		super();
 	}
-	public static void main(String[] args) {
-		Vec3 v = Mem.stack(Vec3.class);
-		{ v.x = 0; v.y = 1; v.z = 2; v.p = null; }
-		v.p = new Point();
-		
-//		(get(v, 1+2+3+5+v.x--).x)++;
-//		float i = 0;
-		
-//		i = (i)++;
-		System.out.println(v.z);
-		
-		get(v, 1).z = 5;
-		System.out.println(v.z);
-		double d = v.p.getX();
-		double d2 = (v.p).x;
-		v.p.x++;
-		
+	public UnalignedAccessException(long l) {
+		super(Long.toString(l));
 	}
-	static Vec3 get(Vec3 v, int i) {return v;} 
+	public UnalignedAccessException(String msg) {
+		super(msg);
+	}
+	
+	public static void throwException(String msg) {
+		throw new UnalignedAccessException(msg);
+	}
+	public static void throwException(long l) {
+		throw new UnalignedAccessException(l);
+	}
 }

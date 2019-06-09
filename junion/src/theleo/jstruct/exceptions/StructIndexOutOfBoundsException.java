@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Juraj Papp
+ * Copyright (c) 2019, Juraj Papp
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -24,21 +24,28 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package theleo.jstruct.plugin;
+package theleo.jstruct.exceptions;
 
 /**
  *
  * @author Juraj Papp
  */
-public class Log {
-	public static boolean enabled = false;
-	public static void err(Object o) {
-		if(enabled) System.err.println(o);
+public class StructIndexOutOfBoundsException extends IndexOutOfBoundsException {
+
+	public StructIndexOutOfBoundsException() {
 	}
-	public static void err(Object a, Object b) {
-		if(enabled) {
-			System.err.print(a);
-			System.err.println(b);
-		}
+	
+	public StructIndexOutOfBoundsException(int i) {
+		super(Integer.toString(i));
+	}
+	public StructIndexOutOfBoundsException(long l) {
+		super(Long.toString(l));
+	}
+	
+	public static void throwException(int i) {
+		throw new StructIndexOutOfBoundsException(i);
+	}
+	public static void throwException(long i) {
+		throw new StructIndexOutOfBoundsException(i);
 	}
 }

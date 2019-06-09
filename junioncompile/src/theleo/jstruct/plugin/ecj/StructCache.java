@@ -50,10 +50,12 @@ import org.eclipse.jdt.core.dom.Name;
 import org.eclipse.jdt.core.dom.PrimitiveType;
 import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
+import org.eclipse.jdt.internal.compiler.lookup.Scope;
 import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
 import sun.tools.jar.resources.jar;
 import theleo.jstruct.ArraySize;
 import theleo.jstruct.Struct;
+import theleo.jstruct.StructHeapType;
 import theleo.jstruct.hidden.Order;
 import theleo.jstruct.plugin.Log;
 
@@ -65,7 +67,7 @@ public class StructCache {
 	public static HashMap<String, Entry> map = new HashMap<>();
 	public static AST currentAST;
 	public static ClassLoader loader;
-	
+
 	private static final Comparator<IVariableBinding> ID_COMP =
 				new Comparator<IVariableBinding>() {
 			@Override
@@ -111,29 +113,49 @@ public class StructCache {
 			this.f = f;
 		}
 	}
+	public static enum TypeSymbol {
+		BOOLEAN('Z'),
+		BYTE('B'),
+		SHORT('S'),
+		CHAR('C'),
+		INT('I'),
+		FLOAT('F'),
+		LONG('J'),
+		DOUBLE('D'),
+		OBJECT('L'),
+		REFERENCE('R');
+
+		char symbol;
+
+		private TypeSymbol(char symbol) {
+			this.symbol = symbol;
+		}
+	}
 	public static enum FieldType {
-        BOOLEAN(1, "Boolean", false),
-        BYTE(1, "Byte", true),
-        SHORT(2, "Short", true),
-		CHAR(2, "Char", true),
-        INT(4, "Int", true),
-		FLOAT(4, "Float", true),
-        LONG(8, "Long", false),
-        DOUBLE(8, "Double", false),
-		OBJECT(8, "Object", false),
-		REFERENCE(8, null, false),
-		STRUCT(0, null, false);
+        BOOLEAN(1, "Boolean", TypeSymbol.BOOLEAN, false),
+        BYTE(1, "Byte", TypeSymbol.BYTE, true),
+        SHORT(2, "Short", TypeSymbol.SHORT, true),
+		CHAR(2, "Char", TypeSymbol.CHAR, true),
+        INT(4, "Int", TypeSymbol.INT, true),
+		FLOAT(4, "Float", TypeSymbol.FLOAT, true),
+        LONG(8, "Long", TypeSymbol.LONG, false),
+        DOUBLE(8, "Double", TypeSymbol.DOUBLE, false),
+		OBJECT(8, "Object", TypeSymbol.OBJECT, false),
+		REFERENCE(8, null, null, false),
+		STRUCT(0, null, null, false);
 		
 		
 
 		public String name;
+		public TypeSymbol symbol;
 		public int size;
 		
 		public boolean primCast;
-		FieldType(int size, String name, boolean primCast) {
+		FieldType(int size, String name, TypeSymbol symbol, boolean primCast) {
 			this.size = size;
 			this.name = name;
 			this.primCast = primCast;
+			this.symbol = symbol;
 		}
 		public static FieldType get(String qualifiedName) {
 			switch(qualifiedName) {
@@ -160,10 +182,11 @@ public class StructCache {
 		public FieldType type;
 		public long length = -1;
 		
-		public int objOffet = Integer.MIN_VALUE;
+		public int objOffset = Integer.MIN_VALUE;
 		public ITypeBinding typeb;
 		public int sortOrder;
-		
+		public boolean isSibling;
+		public FieldEntry refData;
 		
 //		public long offset;
 //		public long size;
@@ -193,10 +216,11 @@ public class StructCache {
 			}
 			return false;
 		}
-		public void setReference() {
+		public void setReference(boolean sibling) {
 			type = FieldType.REFERENCE;
 			align = 8;
 			size = 8;
+			isSibling = sibling;
 		}
 		
 		public boolean isStruct() { return type == FieldType.STRUCT; }
@@ -206,13 +230,14 @@ public class StructCache {
 		@Override
 		public String toString() {
 			
-			return offset + (objOffet==Integer.MIN_VALUE?"":("/"+objOffet)) + ":" + name + " " + type + "(" + align + ")" + ", " + length;
+			return offset + (objOffset==Integer.MIN_VALUE?"":("/"+objOffset)) + ":" + name + " " + type + "(" + align + ")" + ", " + length;
 		}
 		
 		
 		
 	}
 	public static class Entry {
+		public static final StructHeapType DEFAULT_HEAP_TYPE = StructHeapType.Byte;
 		public boolean isStruct;
 		public String binaryName, qualifiedName;
 		
@@ -226,6 +251,8 @@ public class StructCache {
 		
 		public FieldEntry objField;
 		public boolean zero = true;
+		StructHeapType heapType = null;
+		public char heapTypeChar;
 		
 		public int align;
 		public int endPadding;
@@ -252,6 +279,13 @@ public class StructCache {
 							Boolean reorderProp = (Boolean)getValue(a.getAllMemberValuePairs(), "autopad");
 							if(reorderProp != null ) 
 								canReorder = reorderProp;
+
+							heapType = DEFAULT_HEAP_TYPE;
+							IVariableBinding ib2 = (IVariableBinding)getValue(a.getAllMemberValuePairs(), "heap");
+							if(ib2 != null) {
+								heapType = theleo.jstruct.StructHeapType.valueOf(ib2.getName());
+							}
+							heapTypeChar = heapType.name().charAt(0);
 						}
 					}
 				}
@@ -272,10 +306,11 @@ public class StructCache {
 				structSizeWithoutPadding = 0;
 				align = 0;
 				localObjCount = 0;
+				
+				boolean objEntryFirst = true;
 
 				int objCount = 0;
 				int refCount = 0;
-				
 							
 				ArrayList<FieldEntry> fields = new ArrayList<>();
 				boolean reorder = false;
@@ -310,12 +345,11 @@ public class StructCache {
 						int mods = e.getModifiers();
 						if(!Modifier.isStatic(mods)) {
 							ITypeBinding type = e.getType();
-							
 
 //							Log.err(" TYPE PRA " + e);
 //							Log.err("TYPE " + type + ", " + mods);
 							FieldEntry field = new FieldEntry(e.getName());
-							field.sortOrder = i;
+							field.sortOrder = fields.size();
 							field.typeb = type;
 							
 							fields.add(field);
@@ -323,7 +357,44 @@ public class StructCache {
 							
 							IAnnotationBinding ref = find(e.getAnnotations(), "theleo.jstruct.Reference");
 							if(ref != null) {
-								field.setReference();
+								Boolean isSibling = (Boolean)getValue(ref.getAllMemberValuePairs(), "sibling");
+								field.setReference(isSibling == null ? false:isSibling);
+								
+								if(!field.isSibling) {
+									FieldEntry fieldData = new FieldEntry(e.getName()+BaseTranslator.STRUCT_DATA);
+									fieldData.sortOrder = fields.size();
+									fieldData.typeb = null;
+									field.refData = fieldData;
+
+									fields.add(fieldData);
+									offsetTable.put(fieldData.name, fieldData);
+									
+									fieldData.setSimpleType(FieldType.OBJECT);
+									
+									fieldData.offset = structSize;
+									if(objEntry == null) {
+										objEntry = fieldData; objCount++;
+										if(objEntryFirst) {
+											fields.remove(objEntry);
+											for(int j = 0; j < fields.size(); j++) fields.get(j).offset += 8;
+											fields.add(0,objEntry);
+											objEntry.sortOrder = -1;
+										}
+									}
+									else {
+										fieldData.offset = objEntry.offset;
+									}
+									localObjCount++;
+									
+									align = Math.max(align, fieldData.align);
+
+									long size = fieldData.size;
+									if(size > 0 && !(fieldData.type == FieldType.OBJECT && objEntry != fieldData)) {
+										reorder |= (fieldData.offset%fieldData.align) != 0;
+										structSize += size;
+									}
+								}
+								
 								refCount++;
 							}
 							else if(type.isArray()) {
@@ -367,13 +438,17 @@ public class StructCache {
 								}
 							}
 							
-							
 							field.offset = structSize;
 
-														
 							if(field.type == FieldType.OBJECT) {
 								if(objEntry == null) {
 									objEntry = field; objCount++;
+									if(objEntryFirst) {
+										fields.remove(objEntry);
+										for(int j = 0; j < fields.size(); j++) fields.get(j).offset += 8;
+										fields.add(0,objEntry);
+										objEntry.sortOrder = -1;
+									}
 								}
 								else {
 									field.offset = objEntry.offset;
@@ -408,7 +483,7 @@ public class StructCache {
 //				}
 
 				if(cls != null) {
-					//check fields again with Java Reflect Api (better safe than sorry)
+					//check fields again with Java Reflect Api (to be safe)
 					Field[] fs = cls.getDeclaredFields();
 					
 					boolean missingOrder = false;
@@ -520,13 +595,13 @@ public class StructCache {
 					for(int i = 0; i < fields.size(); i++) {
 						FieldEntry f = fields.get(i);
 						if(f.type == FieldType.OBJECT) {
-							f.objOffet = objArrayOffset++;
+							f.objOffset = objArrayOffset++;
 						}
 						else if(f.isStruct() && f.structType.hasJavaObjects()) {
 							objOffsets[off] = f.offset+f.structType.objField.offset;
 							objCounts[off] = f.structType.globalObjCount;
 							off++;
-							f.objOffet = objArrayOffset;
+							f.objOffset = objArrayOffset;
 							objArrayOffset += f.structType.globalObjCount;
 						}
 					}
@@ -613,7 +688,7 @@ public class StructCache {
 		}	
 		
 		if(ib == null) {
-			CompilerError.exec(CompilerError.TYPE_NOT_FOUND, type.toString());
+			CompilerError.exec(CompilerError.TYPE_NOT_FOUND, type.toString() + ", " + type.getClass());
 			return null;
 		}
 		else return get(ib);
@@ -621,7 +696,7 @@ public class StructCache {
 	public static Entry get(Name type) {
 		IBinding b = type.resolveBinding();		
 		if(b == null) {
-			CompilerError.exec(CompilerError.TYPE_NOT_FOUND, type.toString());
+			CompilerError.exec(CompilerError.TYPE_NOT_FOUND, type.toString() + ", " + type.getClass());
 			return null;
 		}
 		if(b instanceof IPackageBinding) {
@@ -653,7 +728,7 @@ public class StructCache {
 		}
 		else return get(ib);
 	}
-	private static Entry get(ITypeBinding ib) {
+	public static Entry get(ITypeBinding ib) {
 		if(ib == null) {
 			CompilerError.exec(CompilerError.UNCATEGORIZED, "Null binding ");
 			return null;
@@ -685,7 +760,7 @@ public class StructCache {
 				return anno[i];
 		return null;
 	}
-	private static Object getValue(IMemberValuePairBinding[] anno, String propertyName) {
+	public static Object getValue(IMemberValuePairBinding[] anno, String propertyName) {
 		if(anno == null) return null;
 		for(int i = 0; i < anno.length; i++)
 			if(anno[i].getName().equals(propertyName))

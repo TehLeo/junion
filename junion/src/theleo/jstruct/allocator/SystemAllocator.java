@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Juraj Papp
+ * Copyright (c) 2019, Juraj Papp
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -24,46 +24,49 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package theleo.jstruct.hidden;
+package theleo.jstruct.allocator;
+import java.util.logging.Level;
+import theleo.jstruct.hidden.Mem0;
+import static theleo.jstruct.hidden.Vars.u;
 
 /**
- * 
- * 
+ * Delegates allocation requests to the system.
  * 
  * @author Juraj Papp
  */
-public class AutoArray extends Ref1 {
-	private long pointer;
-	
-	public AutoArray(long base, long length, long strSize) {
-		super(base, length, strSize);
-		this.pointer = base;
-	}
-	public void free() {
-		long value = Mem0.u.getAndSetLong(this, PTR_OFFSET, 0);
-		if(value != 0) {
-			Mem0.free(value);
-		}				
-	}
+public class SystemAllocator implements Allocator {
 	@Override
-	protected void finalize() throws Throwable {
-		try {
-			free();
-		} finally {
-			super.finalize();
+	public void initializeAllocator() {
+		
+	}
+
+	@Override
+	public void cleanupAllocator() {
+		
+	}
+
+	@Override
+	public long allocateMemory(long size) {
+		long l = u.allocateMemory(size);
+		//check if suceeded
+		if(l == 0) throwOOM(size);
+		//check if aligned to 8 bytes
+		if((l & 7) != 0) {
+			//should not happen
+			Mem0.LOGGER.log(Level.SEVERE, "Unsafe.allocateMemory returned unaligned address! ");
+			//in case it does
+			//the pointer is aligned manually in DefaultArrayAllocator
 		}
+		return l;
 	}
 	
-	private static final long PTR_OFFSET;
-	static {
-		long val;
-		try {
-			val = Mem0.u.objectFieldOffset(AutoArray.class.getDeclaredField("pointer"));
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			val = 40L;
-			throw new IllegalArgumentException("Could not initialize");
-		}
-		PTR_OFFSET = val;
+
+	@Override
+	public void freeMemory(long addr) {
+		u.freeMemory(addr);
+	}
+
+	private static void throwOOM(long size) {
+		throw new OutOfMemoryError("Could not allocate " + size + " bytes!");
 	}
 }

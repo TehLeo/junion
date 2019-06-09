@@ -34,7 +34,20 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
+ * An annotation used to define references in structs.
+ * 
+ * To build tree structures we can write:
  *
+ * <pre>{@code
+ * @Struct
+ * public class Node {
+ *     @Reference
+ *     public Node left, right;
+ * }
+ * }</pre>
+ * 
+ *  
+ * 
  * @author Juraj Papp
  */
 @Documented
@@ -42,5 +55,21 @@ import java.lang.annotation.Target;
 @Target(ElementType.FIELD)
 @Inherited
 public @interface Reference {
-	
+	/**
+	 * If set to true, this reference can only point to null or
+	 * a struct within the same allocated array.
+	 * 
+	 * <p>
+	 * The advantage of a sibling reference is that its storage takes
+	 * 8 bytes, otherwise 8 bytes + object reference are used. 
+	 * </p>
+	 * <p>
+	 * For example, they can be used to construct a linked list/tree and
+	 * since each node refers to nodes from the same array, duplicating
+	 * the list is as simple as copying the underlying array.
+	 * </p>
+	 * 
+	 * @return 
+	 */
+	boolean sibling() default false;
 }

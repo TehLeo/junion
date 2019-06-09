@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Juraj Papp
+ * Copyright (c) 2019, Juraj Papp
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -24,16 +24,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package theleo.jstruct.hidden;
+package theleo.jstruct;
 
 /**
  *
  * @author Juraj Papp
  */
-public class CompileException extends RuntimeException {
-
-	public CompileException() {
-		super("Not compiled with jstruct.");
-	}
-	
+public enum StructHeapType {
+	None, Byte, Short, Char, Int, Float, Long, Double, All, AllAsWellTestDoNotUse
 }

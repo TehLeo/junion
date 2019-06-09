@@ -24,48 +24,27 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package theleo.jstruct.hidden;
+package theleo.jstruct.exceptions;
 
-public class RefN {
-	
-	public final Ref1 owner;
-	public final long[] lengthN;
+/**
+ *
+ * @author Juraj Papp
+ */
+public class WildPointerException extends RuntimeException {
 
-	public RefN(Ref1 owner, long... len) {
-		this.owner = owner;
-		this.lengthN = len;
+	public WildPointerException() {
+		super();
 	}
-	
-	public final long getIndex(int... index) {
-		//y+x*lengthY
-		//Address = Base + ((depthindex*col_size+colindex) * row_size + rowindex) * Element_Size
-		//A[depth] [col] [row]
-		
-		long sum = index[0];
-		for(int i = 1; i < index.length; i++) 
-			sum = index[i] + sum*lengthN[i];
-		
-		return owner.getIndex(sum);
-		
-//		long sum = index[index.length-1];
-//		for(int i = index.length-2; i >= 0; i--) 
-//			sum = index[i] + sum*lengthN[i];
-//		
-//		return owner.getIndex(sum);
+	public WildPointerException(long l) {
+		super(Long.toString(l));
 	}
-
-	public final long getIndex(long... index) {
-		long sum = index[0];
-		for(int i = 1; i < index.length; i++) 
-			sum = index[i] + sum*lengthN[i];
-		
-		return owner.getIndex(sum);
+	public WildPointerException(String msg) {
+		super(msg);
 	}
-	
-	public final long getLength(int dim) { return lengthN[dim]; }
-	public final long getCapacity() { 
-		long sum = lengthN[0];
-		for(int i = 1; i < lengthN.length; i++) sum *= lengthN[i];
-		return sum;
+	public static void throwException(String msg) {
+		throw new WildPointerException(msg);
+	}
+	public static void throwException(long l) {
+		throw new WildPointerException(l);
 	}
 }

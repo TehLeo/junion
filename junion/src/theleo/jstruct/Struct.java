@@ -42,7 +42,6 @@ import java.lang.annotation.Target;
 @Target({ElementType.TYPE})
 @Inherited
 public @interface Struct {
-	
-	
 	boolean autopad() default true;
+	StructHeapType heap() default StructHeapType.All;
 }
