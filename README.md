@@ -89,6 +89,7 @@ You can do so [via PayPap](https://www.paypal.me/JurajPapp)
 ## News & Info
 
 Version 1.2.2 EA (Early-Access) is now acessible [here](https://github.com/TehLeo/junion/releases)
+
 Documentation and tests are now planned to finalize 1.2.x release.
 
 Roadmap to JUnion 1.2.x has been announced [here](https://github.com/TehLeo/junion/issues/3) 
