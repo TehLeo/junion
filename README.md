@@ -88,7 +88,27 @@ You can do so [via PayPap](https://www.paypal.me/JurajPapp)
 
 ## News & Info
 
-Version 1.2.2 EA (Early-Access) is now acessible [here](https://github.com/TehLeo/junion/releases)
+**Status of JUnion 1.2.2:**
+
+JUnion 1.2.2 EA (Early-Access) is now [available here](https://github.com/TehLeo/junion/releases)
+
+**List of changes:**
+
+- can allocate struct arrays on heap, off-heap, stack, the syntax uses annotation, eg:
+```
+Vec3[] arr = new Vec3[10]; //default currently allocates on heap
+Vec3[] arr = new @Heap Vec3[10];
+Vec3[] arr2 = new @Direct Vec3[10];
+Vec3[] arr4 = new @DirectBuffer Vec3[10];
+Vec3[] arr5 = new @Stack Vec3[10];
+Vec3[] arr7 = new @Heap(ArrayType.Byte) Vec3[10]; //underlying data is Java byte[] array
+```
+- the underlying storage can be retrieved as Java array/Buffer with `Mem.getJavaArray(arr)` and `Mem.getJavaBuffer(arr)`
+- added StructType class, which can be used to find information about a struct
+- added StructList, which serves as a resizable struct array, it stores its elements as data not as references (not yet finished)
+- Array allocation is done through ArrayAllocator interface and can be customized by the user if needed
+- Bridge interface serves as the link between the application and ram. The default bridge interface DefaultBridge uses Unsafe to read and write memory. 
+- added MemInit class which stores related settings, such as setting the bridge interface, allocator interface to use, etc.
 
 Finishing the current release/Documentation/tests are now planned to finalize 1.2.x release.
 
